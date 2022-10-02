@@ -240,59 +240,65 @@ else:
 
                 po_and_rows = Retry2(s)
                 po_and_rows_json = po_and_rows.json()
-                for i in po_and_rows_json[0]["Rows"]:
-                    part_id = i["PartId"]
-                    unit_id = i["UnitId"]
-                    url_get_part_info = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {int(part_id)}"
+                if po_and_rows_json == []:
+                    messagebox.showerror("Error", f'Not able to fetch the purchase order')
+                else:
+                    for i in po_and_rows_json[0]["Rows"]:
+                        if i["RestQuantity"] <= 0:
+                            pass
+                        else:
+                            part_id = i["PartId"]
+                            unit_id = i["UnitId"]
+                            url_get_part_info = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {int(part_id)}"
 
-                    def Retry3(s, max_tries=40):
-                        counter = 0
-                        while True:
-                            reportResulst = s.get(url=url_get_part_info, verify=False)
-                            if reportResulst.status_code == 200:
-                                return reportResulst
+                            def Retry3(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=url_get_part_info, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
 
-                            counter += 1
-                            if counter == max_tries:
-                                messagebox.showerror("Error", f'Not able to fetch the part units on the parts included in the purchase order')
-                                break
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the purchase order')
+                                        break
 
-                            if reportResulst.status_code != 200:
-                                r = Retry1(s)
-                            time.sleep(0.4)
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
 
-                    part = Retry3(s)
-                    part_json = part.json()
-                    partnumber = str(part_json[0]["PartNumber"])
-                    desc = str(part_json[0]["Description"])
+                            part = Retry3(s)
+                            part_json = part.json()
+                            partnumber = str(part_json[0]["PartNumber"])
+                            desc = str(part_json[0]["Description"])
 
-                    url_get_unit_info = f"https://{host}/sv/{company}/api/v1/Common/Units?$filter=Id eq {int(unit_id)}"
+                            url_get_unit_info = f"https://{host}/sv/{company}/api/v1/Common/Units?$filter=Id eq {int(unit_id)}"
 
-                    def Retry3(s, max_tries=40):
-                        counter = 0
-                        while True:
-                            reportResulst = s.get(url=url_get_unit_info, verify=False)
-                            if reportResulst.status_code == 200:
-                                return reportResulst
+                            def Retry4(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=url_get_unit_info, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
 
-                            counter += 1
-                            if counter == max_tries:
-                                messagebox.showinfo("Error", f'Not able to print the delivery note through the API\nthe delivery has been made. Please print the delivery note from Monitor or the UNC-filepath instead')
-                                break
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error", f'Not able to fetch the part unit information on the parts included in the purchase order')
+                                        break
 
-                            if reportResulst.status_code != 200:
-                                r = Retry1(s)
-                            time.sleep(0.4)
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
 
-                    unit = Retry3(s)
-                    unit_json = unit.json()
-                    unit_code = str(unit_json[0]["Code"])
-                    restquantity = float(i["RestQuantity"])
-                    recieveQ = float(i["RestQuantity"])
-                    length = int(i["RowsGoodsLabel"])
-                    id = int(i["Id"])
-                    price = float(i["PriceInCompanyCurrency"])
-                    my_tree.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id, price))
+                            unit = Retry4(s)
+                            unit_json = unit.json()
+                            unit_code = str(unit_json[0]["Code"])
+                            restquantity = float(i["RestQuantity"])
+                            recieveQ = float(i["RestQuantity"])
+                            length = int(i["RowsGoodsLabel"])
+                            id = int(i["Id"])
+                            price = float(i["PriceInCompanyCurrency"])
+                            my_tree.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id, price))
 
         except Exception as e:
             messagebox.showerror("Error", f"Issues with populating the treeview {e}")
