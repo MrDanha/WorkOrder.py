@@ -672,14 +672,70 @@ else:
 
 
 
+    # tab2: Design Utleverans
 
+    UL_label_rutin = ttk.Label(tab2, text="Utleverera lagerorder", font=("Calibri", 18, "bold"))
+    UL_label_rutin.grid(row=0, column=0, padx=(10, 0), pady=(2, 20), sticky=W, columnspan=2)
 
+    # Label till ordernummer i rapportera inleverans
+    UL_label_ordernumber = ttk.Label(tab2, text="Ordernummer: ", font=("Calibri", 14, "bold"))
+    UL_label_ordernumber.grid(row=1, column=0, padx=(10, 0), pady=1, sticky=W)
 
+    # Entry till ordernummer
+    UL_entry_ordernumber = ttk.Entry(tab2, font=("Calibri", 14))
+    UL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 40), sticky=W)
+    UL_entry_ordernumber.bind("<Return>", populate_treeview_recieve)
 
+    # Skal till TreeView för att hämta information från plocklista
+    tree_frame_UL = Frame(tab2)
+    tree_frame_UL.grid(row=3, column=0, sticky=W, columnspan=4, ipady=70, pady=(0, 10), padx=(10, 0))
+    tree_scroll_UL = ttk.Scrollbar(tree_frame_UL)
+    tree_scroll_UL.pack(side=RIGHT, fill=Y)
+    my_tree_ul = ttk.Treeview(tree_frame_UL, style="Custom.Treeview", yscrollcommand=tree_scroll_UL.set)
+    my_tree_ul.tag_configure("Test", background="lightgrey", font=('Helvetica', 12, "italic"))
+    my_tree_ul.tag_configure("Test1", background="white")
+    tree_scroll_UL.config(command=my_tree_ul.yview)
+    my_tree_ul['columns'] = ("Artikelnummer", "Benämning", "Restantal", "Utleveransantal", "Enhet", "Längd", "ID", "PARTID", "PRICE")
+    my_tree_ul['displaycolumns'] = ("Artikelnummer", "Benämning", "Restantal", "Utleveransantal", "Enhet", "Längd")
+    my_tree_ul.column("#0", width=1, minwidth=1, stretch=0)
+    my_tree_ul.column("Artikelnummer", anchor=W, width=140)
+    my_tree_ul.column("Benämning", anchor=W, width=300)
+    my_tree_ul.column("Restantal", anchor=W, width=90)
+    my_tree_ul.column("Utleveransantal", anchor=W, width=180)
+    my_tree_ul.column("Enhet", anchor=W, width=90)
+    my_tree_ul.column("Längd", anchor=W, width=90)
+    my_tree_ul.column("ID", anchor=W, width=90)
+    my_tree_ul.column("PARTID", anchor=W, width=90)
+    my_tree_ul.column("PRICE", anchor=W, width=90)
 
+    my_tree_ul.heading("#0", text="", anchor=W)
+    my_tree_ul.heading("Artikelnummer", text="Artikelnummer", anchor=W)
+    my_tree_ul.heading("Benämning", text="Benämning", anchor=W)
+    my_tree_ul.heading("Restantal", text="Restantal", anchor=W)
+    my_tree_ul.heading("Utleveransantal", text="Utleveransantal", anchor=W)
+    my_tree_ul.heading("Enhet", text="Enhet", anchor=W)
+    my_tree_ul.heading("Längd", text="Längd", anchor=W)
+    my_tree_ul.heading("ID", text="ID", anchor=W)
+    my_tree_ul.heading("PARTID", text="ID", anchor=W)
+    my_tree_ul.heading("PRICE", text="PRICE", anchor=W)
+    my_tree_ul.pack(fill='both', expand=True)
 
+    UL_label_recieve = ttk.Label(tab2, text="Utleveransantal: ", font=("Calibri", 14, "bold"))
+    UL_label_recieve.grid(row=4, column=0, padx=(10, 0), pady=(0, 2), sticky=W)
+    UL_entry_recieve = ttk.Entry(tab2, font=("Calibri", 14))
+    UL_entry_recieve.grid(row=5, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
 
+    # UL_label_length = ttk.Label(tab2, text="Längd: ", font=("Calibri", 14, "bold"))
+    # UL_label_length.grid(row=4, column=1, padx=(2, 0), pady=(0, 2), sticky=W)
+    # UL_entry_length = ttk.Entry(tab2, font=("Calibri", 14))
+    # UL_entry_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
 
+    UL_button_edit = ttk.Button(tab2, text="Uppdatera", style="my.TButton", command=update_record_IL)
+    UL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
+    UL_button_recieve = ttk.Button(tab2, text="Utleverera", style="my.TButton", command=report_recieve)
+    UL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
+
+    my_tree_ul.bind('<ButtonRelease-1>', select_record_IL)
 
 
 
@@ -693,43 +749,43 @@ else:
 
 
     # Skal till TreeView för att hämta information från om lagerplats
-    my_tree_lp123 = ttk.Treeview(tab5, columns=(
-    "Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr", "PL_ID", "PR_ID", "PART_ID", "GS1_CODE",
-    "Lagerplats", "EF_VALUE"), displaycolumns=("Artikelnummer", "Benämning", "Restkvantitet", "Lagerplats"))
-    my_tree_lp123.column("#0", width=0, stretch=NO)
-    my_tree_lp123.column("Artikelnummer", anchor=W, width=90)
-    my_tree_lp123.column("Benämning", anchor=W, width=150)
-    my_tree_lp123.column("Restkvantitet", anchor=W, width=60)
-    my_tree_lp123.column("Batch/Serienr", anchor=W, width=60)
-    my_tree_lp123.column("PL_ID", anchor=W, width=60)
-    my_tree_lp123.column("PR_ID", anchor=W, width=60)
-    my_tree_lp123.column("PART_ID", anchor=W, width=60)
-    my_tree_lp123.column("GS1_CODE", anchor=W, width=60)
-    my_tree_lp123.column("Lagerplats", anchor=W, width=60)
-    my_tree_lp123.column("EF_VALUE", anchor=W, width=60)
-
-    my_tree_lp123.heading("#0", text="", anchor=W)
-    my_tree_lp123.heading("Artikelnummer", text="PartNo", anchor=W)
-    my_tree_lp123.heading("Benämning", text="Description", anchor=W)
-    my_tree_lp123.heading("Restkvantitet", text="Quantity", anchor=W)
-    my_tree_lp123.heading("Batch/Serienr", text="Batch or SN", anchor=W)
-    my_tree_lp123.heading("PL_ID", text="PartLocationId", anchor=W)
-    my_tree_lp123.heading("PR_ID", text="ProductRecordId", anchor=W)
-    my_tree_lp123.heading("PART_ID", text="ProductRecordId", anchor=W)
-    my_tree_lp123.heading("GS1_CODE", text="GS1_CODE", anchor=W)
-    my_tree_lp123.heading("Lagerplats", text="Lagerplats", anchor=W)
-    my_tree_lp123.heading("EF_VALUE", text="EF_VALUE", anchor=W)
-
-    my_tree_lp123.grid(row=4, column=1, padx=(0, 2), sticky=W)
-
-
-
-
-    canvas3 = Canvas(dev_plan, width=200, height=80, background='white')
-    canvas3.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=1, pady=10)
-
-    canvas_lp_1 = Canvas(tab2, width=900, height=80, background='white')
-    canvas_lp_1.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=10, pady=10)
+    # my_tree_lp123 = ttk.Treeview(tab5, columns=(
+    # "Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr", "PL_ID", "PR_ID", "PART_ID", "GS1_CODE",
+    # "Lagerplats", "EF_VALUE"), displaycolumns=("Artikelnummer", "Benämning", "Restkvantitet", "Lagerplats"))
+    # my_tree_lp123.column("#0", width=0, stretch=NO)
+    # my_tree_lp123.column("Artikelnummer", anchor=W, width=90)
+    # my_tree_lp123.column("Benämning", anchor=W, width=150)
+    # my_tree_lp123.column("Restkvantitet", anchor=W, width=60)
+    # my_tree_lp123.column("Batch/Serienr", anchor=W, width=60)
+    # my_tree_lp123.column("PL_ID", anchor=W, width=60)
+    # my_tree_lp123.column("PR_ID", anchor=W, width=60)
+    # my_tree_lp123.column("PART_ID", anchor=W, width=60)
+    # my_tree_lp123.column("GS1_CODE", anchor=W, width=60)
+    # my_tree_lp123.column("Lagerplats", anchor=W, width=60)
+    # my_tree_lp123.column("EF_VALUE", anchor=W, width=60)
+    #
+    # my_tree_lp123.heading("#0", text="", anchor=W)
+    # my_tree_lp123.heading("Artikelnummer", text="PartNo", anchor=W)
+    # my_tree_lp123.heading("Benämning", text="Description", anchor=W)
+    # my_tree_lp123.heading("Restkvantitet", text="Quantity", anchor=W)
+    # my_tree_lp123.heading("Batch/Serienr", text="Batch or SN", anchor=W)
+    # my_tree_lp123.heading("PL_ID", text="PartLocationId", anchor=W)
+    # my_tree_lp123.heading("PR_ID", text="ProductRecordId", anchor=W)
+    # my_tree_lp123.heading("PART_ID", text="ProductRecordId", anchor=W)
+    # my_tree_lp123.heading("GS1_CODE", text="GS1_CODE", anchor=W)
+    # my_tree_lp123.heading("Lagerplats", text="Lagerplats", anchor=W)
+    # my_tree_lp123.heading("EF_VALUE", text="EF_VALUE", anchor=W)
+    #
+    # my_tree_lp123.grid(row=4, column=1, padx=(0, 2), sticky=W)
+    #
+    #
+    #
+    #
+    # canvas3 = Canvas(dev_plan, width=200, height=80, background='white')
+    # canvas3.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=1, pady=10)
+    #
+    # canvas_lp_1 = Canvas(tab2, width=900, height=80, background='white')
+    # canvas_lp_1.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=10, pady=10)
 
     # Style för TreeView
     style = ttk.Style()
@@ -740,35 +796,35 @@ else:
     style.configure("Treeview.Heading", foreground='black', font=('Helvetica', 12, "bold"))
 
     # Skal till TreeView för att hämta information från om lagerplats
-    tree_frame = Frame(tab2)
-    tree_frame.grid(row=4, column=1, ipady=80, ipadx=180, padx=10, sticky=W)
-    tree_scroll = ttk.Scrollbar(tree_frame)
-    tree_scroll.pack(side=RIGHT, fill=Y)
-    my_tree_lp = ttk.Treeview(tree_frame, style="Custom.Treeview", yscrollcommand=tree_scroll.set, columns=("Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr", "PL_ID", "PR_ID", "PART_ID", "GS1_CODE", "EF_VALUE"), displaycolumns=("Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr"))
-    tree_scroll.config(command=my_tree_lp.yview)
-    # my_tree_lp['columns'] = ("Artikelnummer", "Benämning", "Restkvantitet", "Batchnummer", "Serienummer", "Test")
-    my_tree_lp.column("#0", anchor=W, width=1, minwidth=1, stretch=0)
-    my_tree_lp.column("Artikelnummer", anchor=W, width=80)
-    my_tree_lp.column("Benämning", anchor=W, width=150)
-    my_tree_lp.column("Restkvantitet", anchor=W, width=80)
-    my_tree_lp.column("Batch/Serienr", anchor=W, width=60)
-    my_tree_lp.column("PL_ID", anchor=W, width=60)
-    my_tree_lp.column("PR_ID", anchor=W, width=60)
-    my_tree_lp.column("PART_ID", anchor=W, width=60)
-    my_tree_lp.column("GS1_CODE", anchor=W, width=60)
-    my_tree_lp.column("EF_VALUE", anchor=W, width=60)
-
-    my_tree_lp.heading("#0", text="", anchor=W)
-    my_tree_lp.heading("Artikelnummer", text="PartNo", anchor=W)
-    my_tree_lp.heading("Benämning", text="Description", anchor=W)
-    my_tree_lp.heading("Restkvantitet", text="Quantity", anchor=W)
-    my_tree_lp.heading("Batch/Serienr", text="Batch or SN", anchor=W)
-    my_tree_lp.heading("PL_ID", text="PartLocationId", anchor=W)
-    my_tree_lp.heading("PR_ID", text="ProductRecordId", anchor=W)
-    my_tree_lp.heading("PART_ID", text="ProductRecordId", anchor=W)
-    my_tree_lp.heading("GS1_CODE", text="GS1_CODE", anchor=W)
-    my_tree_lp.heading("EF_VALUE", text="EF_VALUE", anchor=W)
-    my_tree_lp.pack(fill='both', expand=True)
+    # tree_frame = Frame(tab2)
+    # tree_frame.grid(row=4, column=1, ipady=80, ipadx=180, padx=10, sticky=W)
+    # tree_scroll = ttk.Scrollbar(tree_frame)
+    # tree_scroll.pack(side=RIGHT, fill=Y)
+    # my_tree_lp = ttk.Treeview(tree_frame, style="Custom.Treeview", yscrollcommand=tree_scroll.set, columns=("Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr", "PL_ID", "PR_ID", "PART_ID", "GS1_CODE", "EF_VALUE"), displaycolumns=("Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr"))
+    # tree_scroll.config(command=my_tree_lp.yview)
+    # # my_tree_lp['columns'] = ("Artikelnummer", "Benämning", "Restkvantitet", "Batchnummer", "Serienummer", "Test")
+    # my_tree_lp.column("#0", anchor=W, width=1, minwidth=1, stretch=0)
+    # my_tree_lp.column("Artikelnummer", anchor=W, width=80)
+    # my_tree_lp.column("Benämning", anchor=W, width=150)
+    # my_tree_lp.column("Restkvantitet", anchor=W, width=80)
+    # my_tree_lp.column("Batch/Serienr", anchor=W, width=60)
+    # my_tree_lp.column("PL_ID", anchor=W, width=60)
+    # my_tree_lp.column("PR_ID", anchor=W, width=60)
+    # my_tree_lp.column("PART_ID", anchor=W, width=60)
+    # my_tree_lp.column("GS1_CODE", anchor=W, width=60)
+    # my_tree_lp.column("EF_VALUE", anchor=W, width=60)
+    #
+    # my_tree_lp.heading("#0", text="", anchor=W)
+    # my_tree_lp.heading("Artikelnummer", text="PartNo", anchor=W)
+    # my_tree_lp.heading("Benämning", text="Description", anchor=W)
+    # my_tree_lp.heading("Restkvantitet", text="Quantity", anchor=W)
+    # my_tree_lp.heading("Batch/Serienr", text="Batch or SN", anchor=W)
+    # my_tree_lp.heading("PL_ID", text="PartLocationId", anchor=W)
+    # my_tree_lp.heading("PR_ID", text="ProductRecordId", anchor=W)
+    # my_tree_lp.heading("PART_ID", text="ProductRecordId", anchor=W)
+    # my_tree_lp.heading("GS1_CODE", text="GS1_CODE", anchor=W)
+    # my_tree_lp.heading("EF_VALUE", text="EF_VALUE", anchor=W)
+    # my_tree_lp.pack(fill='both', expand=True)
     # my_tree_lp.grid(row=4, column=1, ipady=80, ipadx=180, padx=10, sticky=W)
 
     # # Skal till TreeView för att hämta information från plocklista
@@ -825,30 +881,30 @@ else:
     # # my_tree1.grid(row=5, column=1, ipady=5, padx=4, sticky=W)
 
     # Skal till TreeView delivery planning
-    my_tree_dev_plan = ttk.Treeview(dev_plan, style="Custom.Treeview",)
-    my_tree_dev_plan['columns'] = ("Nr", "Namn", "Datum", "Vikt", "Volym", "Artiklar", "Rader", "Person", "Status")
-    my_tree_dev_plan.column("#0", width=1, minwidth=1)
-    my_tree_dev_plan.column("Nr", anchor=W, width=40)
-    my_tree_dev_plan.column("Namn", anchor=W, width=165)
-    my_tree_dev_plan.column("Datum", anchor=W, width=120)
-    my_tree_dev_plan.column("Vikt", anchor=W, width=60)
-    my_tree_dev_plan.column("Volym", anchor=W, width=80)
-    my_tree_dev_plan.column("Artiklar", anchor=W, width=60)
-    my_tree_dev_plan.column("Rader", anchor=W, width=60)
-    my_tree_dev_plan.column("Person", anchor=W, width=80)
-    my_tree_dev_plan.column("Status", anchor=W, width=70)
-
-    my_tree_dev_plan.heading("#0", text="", anchor=W)
-    my_tree_dev_plan.heading("Nr", text="PL", anchor=W)
-    my_tree_dev_plan.heading("Namn", text="Cu. Name", anchor=W)
-    my_tree_dev_plan.heading("Datum", text="Date", anchor=W)
-    my_tree_dev_plan.heading("Vikt", text="Weight", anchor=W)
-    my_tree_dev_plan.heading("Volym", text="Volume", anchor=W)
-    my_tree_dev_plan.heading("Artiklar", text="Parts", anchor=W)
-    my_tree_dev_plan.heading("Rader", text="Rows", anchor=W)
-    my_tree_dev_plan.heading("Person", text="Picker", anchor=W)
-    my_tree_dev_plan.heading("Status", text="Status", anchor=W)
-    my_tree_dev_plan.grid(row=5, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
+    # my_tree_dev_plan = ttk.Treeview(dev_plan, style="Custom.Treeview",)
+    # my_tree_dev_plan['columns'] = ("Nr", "Namn", "Datum", "Vikt", "Volym", "Artiklar", "Rader", "Person", "Status")
+    # my_tree_dev_plan.column("#0", width=1, minwidth=1)
+    # my_tree_dev_plan.column("Nr", anchor=W, width=40)
+    # my_tree_dev_plan.column("Namn", anchor=W, width=165)
+    # my_tree_dev_plan.column("Datum", anchor=W, width=120)
+    # my_tree_dev_plan.column("Vikt", anchor=W, width=60)
+    # my_tree_dev_plan.column("Volym", anchor=W, width=80)
+    # my_tree_dev_plan.column("Artiklar", anchor=W, width=60)
+    # my_tree_dev_plan.column("Rader", anchor=W, width=60)
+    # my_tree_dev_plan.column("Person", anchor=W, width=80)
+    # my_tree_dev_plan.column("Status", anchor=W, width=70)
+    #
+    # my_tree_dev_plan.heading("#0", text="", anchor=W)
+    # my_tree_dev_plan.heading("Nr", text="PL", anchor=W)
+    # my_tree_dev_plan.heading("Namn", text="Cu. Name", anchor=W)
+    # my_tree_dev_plan.heading("Datum", text="Date", anchor=W)
+    # my_tree_dev_plan.heading("Vikt", text="Weight", anchor=W)
+    # my_tree_dev_plan.heading("Volym", text="Volume", anchor=W)
+    # my_tree_dev_plan.heading("Artiklar", text="Parts", anchor=W)
+    # my_tree_dev_plan.heading("Rader", text="Rows", anchor=W)
+    # my_tree_dev_plan.heading("Person", text="Picker", anchor=W)
+    # my_tree_dev_plan.heading("Status", text="Status", anchor=W)
+    # my_tree_dev_plan.grid(row=5, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
 
     # tree_frame_plock2 = Frame(tab1)
     # tree_frame_plock2.grid(row=5, column=1, ipady=5, padx=4, sticky=W)
@@ -857,49 +913,49 @@ else:
     # my_tree1 = ttk.Treeview(tree_frame_plock2, yscrollcommand=tree_scroll_plock2.set)
     # tree_scroll_plock2.config(command=my_tree1.yview)
 
-    my_tree_lagerplats_frame = Frame(tab4)
-    my_tree_lagerplats_frame.grid(row=10, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
-    tree_scroll_lagerplats = ttk.Scrollbar(my_tree_lagerplats_frame)
-    tree_scroll_lagerplats.pack(side=RIGHT, fill=Y)
-    my_tree_lagerplats = ttk.Treeview(my_tree_lagerplats_frame, style="Custom.Treeview",yscrollcommand=tree_scroll_lagerplats.set)  # , columns=("Lagerinfo", "Saldo"), displaycolumns=("Lagerinfo", "Saldo"))
-    tree_scroll_lagerplats.config(command=my_tree_lagerplats.yview)
+    # my_tree_lagerplats_frame = Frame(tab4)
+    # my_tree_lagerplats_frame.grid(row=10, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
+    # tree_scroll_lagerplats = ttk.Scrollbar(my_tree_lagerplats_frame)
+    # tree_scroll_lagerplats.pack(side=RIGHT, fill=Y)
+    # my_tree_lagerplats = ttk.Treeview(my_tree_lagerplats_frame, style="Custom.Treeview",yscrollcommand=tree_scroll_lagerplats.set)  # , columns=("Lagerinfo", "Saldo"), displaycolumns=("Lagerinfo", "Saldo"))
+    # tree_scroll_lagerplats.config(command=my_tree_lagerplats.yview)
     # Skal till TreeView lagerplats
     # my_tree_lagerplats = ttk.Treeview(tab4)
-    my_tree_lagerplats['columns'] = ("Lagerinfo", "Saldo")
-    my_tree_lagerplats.column("#0", width=1, minwidth=1, stretch=0)
-    my_tree_lagerplats.column("Lagerinfo", anchor=W, width=200)
-    my_tree_lagerplats.column("Saldo", anchor=W, width=180)
-    # my_tree_lagerplats.column("Datum", anchor=W, width=100)
-    # my_tree_lagerplats.column("Vikt", anchor=W, width=50)
-    # my_tree_lagerplats.column("Volym", anchor=W, width=80)
-    # my_tree_lagerplats.column("Artiklar", anchor=W, width=80)
-    # my_tree_lagerplats.column("Rader", anchor=W, width=60)
-    # my_tree_lagerplats.column("Person", anchor=W, width=80)
-    # my_tree_lagerplats.column("Status", anchor=W, width=65)
-
-    my_tree_lagerplats.heading("#0", text="", anchor=W)
-    my_tree_lagerplats.heading("Lagerinfo", text="Stock info", anchor=W)
-    my_tree_lagerplats.heading("Saldo", text="Quantity", anchor=W)
-    # my_tree_lagerplats.heading("Datum", text="Datum", anchor=W)
-    # my_tree_lagerplats.heading("Vikt", text="Vikt", anchor=W)
-    # my_tree_lagerplats.heading("Volym", text="Volym", anchor=W)
-    # my_tree_lagerplats.heading("Artiklar", text="Artiklar", anchor=W)
-    # my_tree_lagerplats.heading("Rader", text="Rader", anchor=W)
-    # my_tree_lagerplats.heading("Person", text="Plockare", anchor=W)
-    # my_tree_lagerplats.heading("Status", text="Status", anchor=W)
-    # my_tree_lagerplats.grid(row=10, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
-
-
-
-    # Entry till torder
-
-    # Label till info
-    Label_torder_info = Label(tab4, text=f"                                                                                                                                 \n"
-                                         f"                                                                                                                                 ", font=("Calibri", 14), bg="White")
-    Label_torder_info.grid(row=8, column=1, pady=20, padx=10, columnspan=1, sticky=S)
-
-    # Label till info
-    Label_torder_info1 = Label(tab4, text=f"                           ", font=("Calibri", 20), bg="White")
-    Label_torder_info1.grid(row=9, column=1, pady=20, padx=10, columnspan=1, sticky=W + E)
+    # my_tree_lagerplats['columns'] = ("Lagerinfo", "Saldo")
+    # my_tree_lagerplats.column("#0", width=1, minwidth=1, stretch=0)
+    # my_tree_lagerplats.column("Lagerinfo", anchor=W, width=200)
+    # my_tree_lagerplats.column("Saldo", anchor=W, width=180)
+    # # my_tree_lagerplats.column("Datum", anchor=W, width=100)
+    # # my_tree_lagerplats.column("Vikt", anchor=W, width=50)
+    # # my_tree_lagerplats.column("Volym", anchor=W, width=80)
+    # # my_tree_lagerplats.column("Artiklar", anchor=W, width=80)
+    # # my_tree_lagerplats.column("Rader", anchor=W, width=60)
+    # # my_tree_lagerplats.column("Person", anchor=W, width=80)
+    # # my_tree_lagerplats.column("Status", anchor=W, width=65)
+    #
+    # my_tree_lagerplats.heading("#0", text="", anchor=W)
+    # my_tree_lagerplats.heading("Lagerinfo", text="Stock info", anchor=W)
+    # my_tree_lagerplats.heading("Saldo", text="Quantity", anchor=W)
+    # # my_tree_lagerplats.heading("Datum", text="Datum", anchor=W)
+    # # my_tree_lagerplats.heading("Vikt", text="Vikt", anchor=W)
+    # # my_tree_lagerplats.heading("Volym", text="Volym", anchor=W)
+    # # my_tree_lagerplats.heading("Artiklar", text="Artiklar", anchor=W)
+    # # my_tree_lagerplats.heading("Rader", text="Rader", anchor=W)
+    # # my_tree_lagerplats.heading("Person", text="Plockare", anchor=W)
+    # # my_tree_lagerplats.heading("Status", text="Status", anchor=W)
+    # # my_tree_lagerplats.grid(row=10, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
+    #
+    #
+    #
+    # # Entry till torder
+    #
+    # # Label till info
+    # Label_torder_info = Label(tab4, text=f"                                                                                                                                 \n"
+    #                                      f"                                                                                                                                 ", font=("Calibri", 14), bg="White")
+    # Label_torder_info.grid(row=8, column=1, pady=20, padx=10, columnspan=1, sticky=S)
+    #
+    # # Label till info
+    # Label_torder_info1 = Label(tab4, text=f"                           ", font=("Calibri", 20), bg="White")
+    # Label_torder_info1.grid(row=9, column=1, pady=20, padx=10, columnspan=1, sticky=W + E)
 
     window.mainloop()
