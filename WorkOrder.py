@@ -42,7 +42,7 @@ else:
     # Config-filen med inloggningsuppgifter till Monitor
     file = './config.ini'
     parser = ConfigParser()
-    parser.read(file)
+    parser.read(file, encoding="UTF-8")
 
     host = parser["inloggning"]['host']
     company = parser['inloggning']['company']
@@ -638,7 +638,7 @@ else:
     my_tree.tag_configure("Test", background="lightgrey", font=('Helvetica', 12, "italic"))
     my_tree.tag_configure("Test1", background="white")
     tree_scroll_plock1.config(command=my_tree.yview)
-    my_tree['columns'] = ("Artikelnummer", "Benämning", "Restantal", "Inlevereransantal", "Enhet", "Längd", "ID", "PARTID", "PRICE")
+    my_tree['columns'] = ("Artikelnummer", "Benämning", "Restantal", "Inlevereransantal", "Enhet", "Längd", "ID", "PARTID")
     my_tree['displaycolumns'] = ("Artikelnummer", "Benämning", "Restantal", "Inlevereransantal", "Enhet", "Längd")
     my_tree.column("#0", width=1, minwidth=1, stretch=0)
     my_tree.column("Artikelnummer", anchor=W, width=140)
@@ -649,7 +649,6 @@ else:
     my_tree.column("Längd", anchor=W, width=90)
     my_tree.column("ID", anchor=W, width=90)
     my_tree.column("PARTID", anchor=W, width=90)
-    my_tree.column("PRICE", anchor=W, width=90)
 
     my_tree.heading("#0", text="", anchor=W)
     my_tree.heading("Artikelnummer", text="Artikelnummer", anchor=W)
@@ -660,7 +659,6 @@ else:
     my_tree.heading("Längd", text="Längd", anchor=W)
     my_tree.heading("ID", text="ID", anchor=W)
     my_tree.heading("PARTID", text="ID", anchor=W)
-    my_tree.heading("PRICE", text="PRICE", anchor=W)
     my_tree.pack(fill='both', expand=True)
 
     IL_label_recieve = ttk.Label(tab1, text="Inleveransantal: ", font=("Calibri", 14, "bold"))
@@ -810,11 +808,74 @@ else:
                                 UL_entry_ordernumber.focus_set()
                                 break
                             else:
-                                length = int(i["AlternatePreparationCode"])
+                                try:
+                                    length = int(i["AlternatePreparationCode"])
+                                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(part_id)} and RegistrationNo eq '{length}'"
 
-                                id = int(i["Id"])
-                                price = float(i["PriceInCompanyCurrency"])
-                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id, price))
+                                    def Retry200(s, max_tries=40):
+                                        counter = 0
+                                        while True:
+                                            reportResulst = s.get(url=serial_numbers_w_length, verify=False)
+                                            if reportResulst.status_code == 200:
+                                                return reportResulst
+
+                                            counter += 1
+                                            if counter == max_tries:
+                                                messagebox.showinfo("Error", f'Not able to fetch the serial numbers')
+                                                break
+
+                                            if reportResulst.status_code != 200:
+                                                r = Retry1(s)
+                                            time.sleep(0.4)
+
+                                    serials = Retry200(s)
+                                    serials_json = serials.json()
+                                    serial_numbers_with_right_length = []
+                                    serial_numbers_with_right_length_ids = []
+                                    for ior in serials_json:
+                                        serial_numbers_with_right_length_ids.append(ior["Id"])
+                                        serial_numbers_with_right_length.append(ior["SerialNumber"])
+                                    if not serial_numbers_with_right_length_ids:
+                                        recieveQ = 0
+                                        id = int(i["Id"])
+                                        my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                    else:
+                                        quantity_of_serials = []
+                                        for j in serial_numbers_with_right_length_ids:
+
+                                            serial_numbers_Q = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocationProductRecords?$filter=ProductRecordId eq {int(j)}"
+
+                                            def Retry300(s, max_tries=40):
+                                                counter = 0
+                                                while True:
+                                                    reportResulst = s.get(url=serial_numbers_Q, verify=False)
+                                                    if reportResulst.status_code == 200:
+                                                        return reportResulst
+
+                                                    counter += 1
+                                                    if counter == max_tries:
+                                                        messagebox.showinfo("Error", f'Not able to fetch the stock balance on the serial numbers')
+                                                        break
+
+                                                    if reportResulst.status_code != 200:
+                                                        r = Retry1(s)
+                                                    time.sleep(0.4)
+
+                                            serials_Q = Retry300(s)
+                                            serials_Q_json = serials_Q.json()
+                                            quantity_of_serials.append(float(serials_Q_json[0]["Quantity"]))
+                                        sum_stock = float(sum(quantity_of_serials))
+                                        if recieveQ >= sum_stock:
+                                            recieveQ = sum_stock
+                                        id = int(i["Id"])
+                                        my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                except Exception as e:
+                                    for u in my_tree_ul.get_children():
+                                        my_tree_ul.delete(u)
+                                    messagebox.showerror("Error", f"Issues with converting the length on at least one row")
+                                    UL_entry_ordernumber.delete(0, END)
+                                    UL_entry_ordernumber.focus_set()
+
 
         except Exception as e:
             messagebox.showerror("Error", f"Issues with populating the treeview {e}")
@@ -840,6 +901,169 @@ else:
             UL_entry_recieve.delete(0, END)
         except Exception as e:
             messagebox.showerror("Error", f"Issues with updating the record {e}")
+
+        # Funktion för att ankomstrapportera
+    def report_dispatch():
+        artikelnummer = []
+        benamningar = []
+        rest_antal = []
+        inleverans_antal = []
+        enhet = []
+        langder = []
+        id = []
+        part_id = []
+        for u in my_tree_ul.get_children():
+            children = my_tree_ul.item(u, "values")
+            artikelnummer.append(children[0])
+            benamningar.append(children[1])
+            rest_antal.append(children[2])
+            inleverans_antal.append(children[3])
+            enhet.append(children[4])
+            langder.append(children[5])
+            id.append(children[6])
+            part_id.append(children[7])
+
+        urllib3.disable_warnings()
+        s = requests.session()
+        url = f"https://{host}/sv/{company}/login"
+        inloggning = \
+            {
+                "Username": f"{username}",
+                "Password": f"{password}",
+                "ForceRelogin": True
+            }
+
+        def Retry1(s, max_tries=40):
+            counter = 0
+            while True:
+                # s = requests.session()
+                r = s.post(url=url, json=inloggning, verify=False)
+                if r.status_code == 200:
+                    return r
+                counter += 1
+                if counter == max_tries:
+                    messagebox.showinfo("Error", f'Not able to login to the API')
+                    break
+                time.sleep(0.4)
+
+        r = Retry1(s)
+        r_fel = r.json()
+        if r_fel == None or r_fel == "None":
+            messagebox.showerror("Error", f'Not able to login to the API')
+
+
+
+        else:
+            for i, o, p, q, r, t in zip(artikelnummer, inleverans_antal, enhet, langder, id, part_id):
+                float_Q = float(o)
+                int_Q = int(float_Q)
+                langd = str(q)
+                partid = int(t)
+                serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(partid)} and RegistrationNo eq '{langd}'&$orderby=ActualArrivalDate desc"
+
+                def Retry200(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=serial_numbers_w_length, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showinfo("Error", f'Not able to fetch the serial numbers')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                serials = Retry200(s)
+                serials_json = serials.json()
+                serial_numbers_with_right_length = []
+                serial_numbers_with_right_length_ids = []
+                for i in serials_json:
+                    serial_numbers_with_right_length_ids.append(i["Id"])
+                    serial_numbers_with_right_length.append(i["SerialNumber"])
+                if not serial_numbers_with_right_length_ids:
+                    messagebox.showinfo("Error", f'Issues with dispatch report one row on the order since the program did not find any product records')
+                else:
+                    quantity_of_serials = []
+                    id_of_serials = []
+                    location_ids = []
+                    for j in serial_numbers_with_right_length_ids:
+
+                        serial_numbers_Q = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocationProductRecords?$filter=ProductRecordId eq {int(j)}"
+
+                        def Retry300(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=serial_numbers_Q, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error", f'Not able to fetch the stock balance on the serial numbers')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        serials_Q = Retry300(s)
+                        serials_Q_json = serials_Q.json()
+                        if float(serials_Q_json[0]["Quantity"]) > 0:
+                            id_of_serials.append(int(j))
+                            quantity_of_serials.append(float(serials_Q_json[0]["Quantity"]))
+                            location_ids.append(int(serials_Q_json[0]["PartLocationId"]))
+                    serials_end = []
+                    for idor, xdor, loc in zip(id_of_serials[:(int_Q)], quantity_of_serials[:(int_Q)], location_ids[:(int_Q)]):
+                        serial_keys = {
+                            "ProductRecordId": int(idor),
+                            "PartLocationId": int(loc),
+                            "Quantity": 1.0
+                        }
+                        serials_end.append(serial_keys)
+                    rows = [
+                        {
+                            "CustomerOrderRowId": int(r),
+                            "Quantity": float(int_Q),
+                            "DeleteFutureRest": False,
+                            "Locations": serials_end
+                        }
+                    ]
+                    url_post_departure = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders/ReportDeliveries"
+                    json_dep = {
+                        "Rows": rows
+                    }
+
+                    def Retry500(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=url_post_departure, json=json_dep, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to report dispatch on a row on the customer order, status message: {reportResulst.text}')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    co_and_rows = Retry500(s)
+                    co_and_rows_json = co_and_rows.json()
+
+        messagebox.showinfo("Info", "Inleveransen gick ok!")
+        for u in my_tree_ul.get_children():
+            my_tree_ul.delete(u)
+        UL_entry_ordernumber.delete(0, END)
+        UL_entry_recieve.delete(0, END)
+        UL_entry_ordernumber.focus_set()
+
+        # Uppdatera extra fälten på serienummer härnäst
 
     UL_label_rutin = ttk.Label(tab2, text="Utleverera lagerorder", font=("Calibri", 18, "bold"))
     UL_label_rutin.grid(row=0, column=0, padx=(10, 0), pady=(2, 20), sticky=W, columnspan=2)
@@ -899,7 +1123,7 @@ else:
 
     UL_button_edit = ttk.Button(tab2, text="Uppdatera", style="my.TButton", command=update_record_UL)
     UL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
-    UL_button_recieve = ttk.Button(tab2, text="Utleverera", style="my.TButton", command=report_recieve)
+    UL_button_recieve = ttk.Button(tab2, text="Utleverera", style="my.TButton", command=report_dispatch)
     UL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
 
     my_tree_ul.bind('<ButtonRelease-1>', select_record_UL)
