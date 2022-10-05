@@ -608,6 +608,8 @@ else:
         for u in my_tree.get_children():
             my_tree.delete(u)
         IL_entry_ordernumber.delete(0, END)
+        IL_entry_length.delete(0, END)
+        IL_entry_recieve.delete(0, END)
         IL_entry_ordernumber.focus_set()
 
                     # Uppdatera extra fälten på serienummer härnäst
@@ -690,6 +692,155 @@ else:
 
     # tab2: Design Utleverans
 
+    # Funktion för att populera treeview utleverans
+
+    def populate_treeview_dispatch(events):
+        try:
+            for u in my_tree_ul.get_children():
+                my_tree_ul.delete(u)
+            ordernumber = str(UL_entry_ordernumber.get())
+            urllib3.disable_warnings()
+            s = requests.session()
+            url = f"https://{host}/sv/{company}/login"
+            inloggning = \
+                {
+                    "Username": f"{username}",
+                    "Password": f"{password}",
+                    "ForceRelogin": True
+                }
+
+            def Retry1(s, max_tries=40):
+                counter = 0
+                while True:
+                    # s = requests.session()
+                    r = s.post(url=url, json=inloggning, verify=False)
+                    if r.status_code == 200:
+                        return r
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to login to the API')
+                        break
+                    time.sleep(0.4)
+
+            r = Retry1(s)
+            r_fel = r.json()
+            if r_fel == None or r_fel == "None":
+                messagebox.showerror("Error", f'Not able to login to the API')
+            else:
+                url_get_rows_PO = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders?$filter=OrderNumber eq '{ordernumber}' and LifeCycleState eq 10&$expand=Rows, Part"
+
+                def Retry2(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=url_get_rows_PO, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Not able to fetch the customer order')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                po_and_rows = Retry2(s)
+                po_and_rows_json = po_and_rows.json()
+                if po_and_rows_json == []:
+                    messagebox.showerror("Error", f'Not able to fetch the customer order')
+                else:
+                    for i in po_and_rows_json[0]["Rows"]:
+                        if i["RestQuantity"] <= 0:
+                            pass
+                        else:
+                            part_id = i["PartId"]
+                            unit_id = i["UnitId"]
+                            url_get_part_info = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {int(part_id)}"
+
+                            def Retry3(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=url_get_part_info, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            part = Retry3(s)
+                            part_json = part.json()
+                            partnumber = str(part_json[0]["PartNumber"])
+                            desc = str(part_json[0]["Description"])
+
+                            url_get_unit_info = f"https://{host}/sv/{company}/api/v1/Common/Units?$filter=Id eq {int(unit_id)}"
+
+                            def Retry4(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=url_get_unit_info, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error", f'Not able to fetch the part unit information on the parts included in the customer order')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            unit = Retry4(s)
+                            unit_json = unit.json()
+                            unit_code = str(unit_json[0]["Code"])
+                            restquantity = float(i["RestQuantity"])
+                            recieveQ = float(i["RestQuantity"])
+                            if not i["AlternatePreparationCode"]:
+                                for u in my_tree_ul.get_children():
+                                    my_tree_ul.delete(u)
+                                messagebox.showerror("Error", f"Issues with populating the treeview one or more rows on the customer order is missing the length")
+                                UL_entry_ordernumber.delete(0, END)
+                                UL_entry_ordernumber.focus_set()
+                                break
+                            else:
+                                length = int(i["AlternatePreparationCode"])
+
+                                id = int(i["Id"])
+                                price = float(i["PriceInCompanyCurrency"])
+                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id, price))
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Issues with populating the treeview {e}")
+
+    # Funktion för markerad rad i rapportera utleveransrutinen, skriver också i Entry-boxes
+    def select_record_UL(events):
+        try:
+            UL_entry_recieve.delete(0, END)
+
+            selected = my_tree_ul.selection()[0]
+            children = my_tree_ul.item(selected, "values")
+            UL_entry_recieve.insert(0, children[3])
+        except Exception as e:
+            messagebox.showerror("Error", f"Issues with selecting the record {e}")
+
+    # Funktion för att uppdatera rad i rapportera utleveransrutinen
+    def update_record_UL():
+        try:
+            if UL_entry_recieve.get() != "":
+                selected = my_tree_ul.selection()[0]
+                children = my_tree_ul.item(selected, "values")
+                my_tree_ul.set(selected, "#4", float(UL_entry_recieve.get()))
+            UL_entry_recieve.delete(0, END)
+        except Exception as e:
+            messagebox.showerror("Error", f"Issues with updating the record {e}")
+
     UL_label_rutin = ttk.Label(tab2, text="Utleverera lagerorder", font=("Calibri", 18, "bold"))
     UL_label_rutin.grid(row=0, column=0, padx=(10, 0), pady=(2, 20), sticky=W, columnspan=2)
 
@@ -700,7 +851,7 @@ else:
     # Entry till ordernummer
     UL_entry_ordernumber = ttk.Entry(tab2, font=("Calibri", 14))
     UL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 40), sticky=W)
-    UL_entry_ordernumber.bind("<Return>", populate_treeview_recieve)
+    UL_entry_ordernumber.bind("<Return>", populate_treeview_dispatch)
 
     # Skal till TreeView för att hämta information från plocklista
     tree_frame_UL = Frame(tab2)
@@ -746,12 +897,12 @@ else:
     # UL_entry_length = ttk.Entry(tab2, font=("Calibri", 14))
     # UL_entry_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
 
-    UL_button_edit = ttk.Button(tab2, text="Uppdatera", style="my.TButton", command=update_record_IL)
+    UL_button_edit = ttk.Button(tab2, text="Uppdatera", style="my.TButton", command=update_record_UL)
     UL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
     UL_button_recieve = ttk.Button(tab2, text="Utleverera", style="my.TButton", command=report_recieve)
     UL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
 
-    my_tree_ul.bind('<ButtonRelease-1>', select_record_IL)
+    my_tree_ul.bind('<ButtonRelease-1>', select_record_UL)
 
 
 
