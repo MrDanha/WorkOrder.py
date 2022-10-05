@@ -89,28 +89,28 @@ else:
     # Ta bort varning om certifikat
     urllib3.disable_warnings()
 
-    cnxn = pyodbc.connect(f"DSN={ODBC}")
-    cursor = cnxn.cursor()
-    customer10 = cursor.execute('''create table if not EXISTS ReadOnlyUser.anp_serienummer
-                                        (
-                                        Serienummer Numeric(30) NOT NULL,
-                                        UNIQUE (Serienummer))
-                                        ''')
-    cursor.commit()
-    cursor.close()
-
-    cnxn = pyodbc.connect(f"DSN={ODBC}")
-    cursor = cnxn.cursor()
-    customer11 = cursor.execute('''
-    BEGIN IF NOT EXISTS ( SELECT serienummer FROM ReadOnlyUser.anp_serienummer 
-                   WHERE serienummer = 900000000 )
-                   BEGIN
-                   INSERT INTO ReadOnlyUser.anp_serienummer (serienummer) VALUES (900000000)
-                   END
-                   END
-                                            ''')
-    cursor.commit()
-    cursor.close()
+    # cnxn = pyodbc.connect(f"DSN={ODBC}")
+    # cursor = cnxn.cursor()
+    # customer10 = cursor.execute('''create table if not EXISTS ReadOnlyUser.anp_serienummer
+    #                                     (
+    #                                     Serienummer Numeric(30) NOT NULL,
+    #                                     UNIQUE (Serienummer))
+    #                                     ''')
+    # cursor.commit()
+    # cursor.close()
+    #
+    # cnxn = pyodbc.connect(f"DSN={ODBC}")
+    # cursor = cnxn.cursor()
+    # customer11 = cursor.execute('''
+    # BEGIN IF NOT EXISTS ( SELECT serienummer FROM ReadOnlyUser.anp_serienummer
+    #                WHERE serienummer = 900000000 )
+    #                BEGIN
+    #                INSERT INTO ReadOnlyUser.anp_serienummer (serienummer) VALUES (900000000)
+    #                END
+    #                END
+    #                                         ''')
+    # cursor.commit()
+    # cursor.close()
     # Skapa tabell för att planera plocklistor
 
     # Inställningar för skalet
@@ -376,7 +376,7 @@ else:
 
                                 counter += 1
                                 if counter == max_tries:
-                                    messagebox.showinfo("Error", f'Not able to print the delivery note through the API\nthe delivery has been made. Please print the delivery note from Monitor or the UNC-filepath instead')
+                                    messagebox.showinfo("Error1", f'Error find the extra field')
                                     break
 
                                 if reportResulst.status_code != 200:
@@ -399,7 +399,7 @@ else:
 
                                 counter += 1
                                 if counter == max_tries:
-                                    messagebox.showinfo("Error", f'Not able to print the delivery note through the API\nthe delivery has been made. Please print the delivery note from Monitor or the UNC-filepath instead')
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
                                     break
 
                                 if reportResulst.status_code != 200:
@@ -422,7 +422,7 @@ else:
 
                                 counter += 1
                                 if counter == max_tries:
-                                    messagebox.showinfo("Error", f'Not able to print the delivery note through the API\nthe delivery has been made. Please print the delivery note from Monitor or the UNC-filepath instead')
+                                    messagebox.showinfo("Error3", f'Error find the extra field')
                                     break
 
                                 if reportResulst.status_code != 200:
@@ -445,7 +445,7 @@ else:
 
                                 counter += 1
                                 if counter == max_tries:
-                                    messagebox.showinfo("Error", f'Not able to print the delivery note through the API\nthe delivery has been made. Please print the delivery note from Monitor or the UNC-filepath instead')
+                                    messagebox.showinfo("Error4", f'Error find the extra field')
                                     break
 
                                 if reportResulst.status_code != 200:
@@ -458,32 +458,48 @@ else:
 
                 float_Q = float(o)
                 int_Q = int(float_Q)
-                cnxn = pyodbc.connect(f"DSN={ODBC}")
-                cursor = cnxn.cursor()
-                cursor.execute(f"""
-                                       select top 1 serienummer
-                                       from ReadOnlyUser.anp_serienummer
-                                       order by serienummer desc
-                                                                            """)
+                # cnxn = pyodbc.connect(f"DSN={ODBC}")
+                # cursor = cnxn.cursor()
+                # cursor.execute(f"""
+                #                        select top 1 serienummer
+                #                        from ReadOnlyUser.anp_serienummer
+                #                        order by serienummer desc
+                #                                                             """)
+                #
+                # result900 = cursor.fetchall()
 
-                result900 = cursor.fetchall()
+                ef_pr = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=StartsWith(SerialNumber, 'SER9')&$orderby=SerialNumber desc&$top=1"
+
+                def Retry100(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=ef_pr, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showinfo("Error", f'Not able to find the starting product record')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                ef_pr = Retry100(s)
+                ef_pr_json = ef_pr.json()
+                next_serial_number_string = ef_pr_json[0]["SerialNumber"]
+
                 serials = []
-                nextserial = int(result900[0][0])
+                nextserial = int(next_serial_number_string[3:])
                 for next in range(int_Q):
                     nextserial += 1
-                    cnxn = pyodbc.connect(f"DSN={ODBC}")
-                    cursor = cnxn.cursor()
-                    cursor.execute(f"""
-                                                           insert into readonlyuser.anp_serienummer (serienummer) values ({nextserial})
-                                                                                                """)
-                    cursor.commit()
-                    cursor.close()
                     serials.append(nextserial)
 
                 serials_end = []
                 for i in serials:
                     serial_keys = {
-                            "SerialNumber": i,
+                            "SerialNumber": "SER"+str(i),
                             "Quantity": 1.0
                         }
                     serials_end.append(serial_keys)
