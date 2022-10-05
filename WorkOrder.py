@@ -1148,7 +1148,6 @@ else:
                                             counter = 0
                                             while True:
                                                 reportResulst = s.post(url=url_post_arrivals, json=json, verify=False)
-                                                print(reportResulst.text)
                                                 if reportResulst.status_code == 200:
                                                     return reportResulst
 
