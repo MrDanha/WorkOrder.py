@@ -55,6 +55,7 @@ else:
 
     lagerplats = parser['logics']['lagerplats']
     lagerstalle = parser['logics']['lagerstalle']
+    leverantorskod_uthyrning = parser['logics']['leverantorskod_uthyrning']
     artikel_avskrivningstid = parser['logics_EF']['artikel_avskrivningstid']
     artikel_avskrivningskonto = parser['logics_EF']['artikel_avskrivningskonto']
     artikel_tillgangskonto = parser['logics_EF']['artikel_tillgangskonto']
@@ -1301,7 +1302,6 @@ else:
 
                 wh_get = Retry2(s)
                 wh_get_json = wh_get.json()
-                print(wh_get_json)
                 if wh_get_json == []:
                     messagebox.showerror("Error", f'Not able to fetch the warehouse')
                 else:
@@ -1327,16 +1327,56 @@ else:
 
                     pl_get = Retry900(s)
                     if pl_get == []:
-                        messagebox.showerror("Error", f'Error fetching the rows for the project')
+                        messagebox.showerror("Error", f'Did not find any rows for the specific project')
                     else:
                         pl_get_json = pl_get.json()
                         for pr_bals in pl_get_json:
-                            print(pr_bals)
                             for iora in pr_bals["PartLocationProductRecords"]:
                                 if iora["Quantity"] > 0:
-                                    print(iora)
+                                    #print(iora)
+                                    pr_url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=Id eq {iora['ProductRecordId']}"
 
-                    #my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                    def Retry10000(s, max_tries=40):
+                                        counter = 0
+                                        while True:
+                                            reportResulst = s.get(url=pr_url, verify=False)
+                                            if reportResulst.status_code == 200:
+                                                return reportResulst
+
+                                            counter += 1
+                                            if counter == max_tries:
+                                                messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                                break
+
+                                            if reportResulst.status_code != 200:
+                                                r = Retry1(s)
+                                            time.sleep(0.4)
+
+                                    pr_get = Retry10000(s)
+                                    pr_get_json = pr_get.json()
+                                    part_id = int(pr_get_json[0]["PartId"])
+                                    part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
+
+                                    def Retry10001(s, max_tries=40):
+                                        counter = 0
+                                        while True:
+                                            reportResulst = s.get(url=part_url, verify=False)
+                                            if reportResulst.status_code == 200:
+                                                return reportResulst
+
+                                            counter += 1
+                                            if counter == max_tries:
+                                                messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                                break
+
+                                            if reportResulst.status_code != 200:
+                                                r = Retry1(s)
+                                            time.sleep(0.4)
+
+                                    part_get = Retry10001(s)
+                                    part_get_json = part_get.json()
+
+                                    my_tree_AL.insert('', 'end', values=(0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["RegistrationNo"], pr_get_json[0]["RegistrationNo"], 0, part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"]))
 
 
 
@@ -1345,13 +1385,15 @@ else:
 
 
     # Funktion för markerad rad i rapportera utleveransrutinen, skriver också i Entry-boxes
-    def select_record_UL(events):
+    def select_record_AL(events):
         try:
-            UL_entry_recieve.delete(0, END)
+            AL_entry_recieve.delete(0, END)
 
-            selected = my_tree_ul.selection()[0]
-            children = my_tree_ul.item(selected, "values")
-            UL_entry_recieve.insert(0, children[3])
+            selected = my_tree_AL.selection()[0]
+            children = my_tree_AL.item(selected, "values")
+            AL_entry_recieve.insert(0, children[5])
+            var.set(int(children[0]))
+            var2.set(int(children[6]))
         except Exception as e:
             messagebox.showerror("Error", f"Issues with selecting the record {e}")
 
@@ -1359,37 +1401,57 @@ else:
     # Funktion för att uppdatera rad i rapportera utleveransrutinen
     def update_record_UL():
         try:
-            if UL_entry_recieve.get() != "":
-                selected = my_tree_ul.selection()[0]
-                children = my_tree_ul.item(selected, "values")
-                my_tree_ul.set(selected, "#4", float(UL_entry_recieve.get()))
-            UL_entry_recieve.delete(0, END)
+            if AL_entry_recieve.get() != "":
+                selected = my_tree_AL.selection()[0]
+                children = my_tree_AL.item(selected, "values")
+                my_tree_AL.set(selected, "#6", int(AL_entry_recieve.get()))
+                my_tree_AL.set(selected, "#1", int(var.get()))
+                my_tree_AL.set(selected, "#7", int(var2.get()))
+            AL_entry_recieve.delete(0, END)
+            var.set(0)
+            var2.set(0)
         except Exception as e:
             messagebox.showerror("Error", f"Issues with updating the record {e}")
 
         # Funktion för att ankomstrapportera
 
 
-    def report_dispatch():
-        artikelnummer = []
-        benamningar = []
-        rest_antal = []
-        inleverans_antal = []
-        enhet = []
-        langder = []
-        id = []
-        part_id = []
-        for u in my_tree_ul.get_children():
-            children = my_tree_ul.item(u, "values")
-            artikelnummer.append(children[0])
-            benamningar.append(children[1])
-            rest_antal.append(children[2])
-            inleverans_antal.append(children[3])
-            enhet.append(children[4])
-            langder.append(children[5])
-            id.append(children[6])
-            part_id.append(children[7])
-
+    def create_invoice():
+        # my_tree_AL.column("Återlämna", anchor=W, width=100)
+        # my_tree_AL.column("Serienummer", anchor=W, width=130)
+        # my_tree_AL.column("Artikelnr.", anchor=W, width=110)
+        # my_tree_AL.column("Benämning", anchor=W, width=230)
+        # my_tree_AL.column("Uthyrd längd", anchor=W, width=110)
+        # my_tree_AL.column("Återl. längd", anchor=W, width=110)
+        # my_tree_AL.column("Rengör", anchor=W, width=90)
+        # my_tree_AL.column("PARTID", anchor=W, width=90)
+        # my_tree_AL.column("PR_ID", anchor=W, width=90)
+        # my_tree_AL.column("QUANTITY", anchor=W, width=90)
+        # my_tree_AL.column("PL_ID", anchor=W, width=90)
+        aterlamna = []
+        serienummer = []
+        artnr = []
+        ben = []
+        uthyrd = []
+        ater = []
+        rengor = []
+        partid = []
+        pr_id = []
+        quantity = []
+        pl_id = []
+        for u in my_tree_AL.get_children():
+            children = my_tree_AL.item(u, "values")
+            aterlamna.append(children[0])
+            serienummer.append(children[1])
+            artnr.append(children[2])
+            ben.append(children[3])
+            uthyrd.append(children[4])
+            ater.append(children[5])
+            rengor.append(children[6])
+            partid.append(children[7])
+            pr_id.append(children[8])
+            quantity.append(children[9])
+            pl_id.append(children[10])
         urllib3.disable_warnings()
         s = requests.session()
         url = f"https://{host}/sv/{company}/login"
@@ -1421,216 +1483,269 @@ else:
 
 
         else:
-            for i, o, p, q, r, t in zip(artikelnummer, inleverans_antal, enhet, langder, id, part_id):
-                float_Q = float(o)
-                int_Q = int(float_Q)
-                langd = str(q)
-                partid = int(t)
-                if int_Q <= 0:
-                    pass
-                else:
-                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(partid)} and RegistrationNo eq '{langd}'&$orderby=ActualArrivalDate desc"
+            for var_aterlamna, var_serienummer, var_artnr, var_ben, var_uthyrd, var_ater, var_rengor, var_partid, var_pr_id, var_quantity, var_pl_id in zip(aterlamna, serienummer, artnr, ben, uthyrd, ater, rengor, partid, pr_id, quantity, pl_id):
+                if var_aterlamna == 1:
+                    purchase_ordertype_url = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrderTypes?$filter=Number eq 3"
 
-                    def Retry200(s, max_tries=40):
+                    def Retry2(s, max_tries=40):
                         counter = 0
                         while True:
-                            reportResulst = s.get(url=serial_numbers_w_length, verify=False)
+                            reportResulst = s.get(url=purchase_ordertype_url, verify=False)
                             if reportResulst.status_code == 200:
                                 return reportResulst
 
                             counter += 1
                             if counter == max_tries:
-                                messagebox.showinfo("Error", f'Not able to fetch the serial numbers')
+                                messagebox.showerror("Error", f'Not able to fetch the warehouse')
                                 break
 
                             if reportResulst.status_code != 200:
                                 r = Retry1(s)
                             time.sleep(0.4)
 
-                    serials = Retry200(s)
-                    serials_json = serials.json()
-                    serial_numbers_with_right_length = []
-                    serial_numbers_with_right_length_ids = []
-                    for i in serials_json:
-                        serial_numbers_with_right_length_ids.append(i["Id"])
-                        serial_numbers_with_right_length.append(i["SerialNumber"])
-                    if not serial_numbers_with_right_length_ids:
-                        messagebox.showinfo("Error", f'Issues with dispatch report one row on the order since the program did not find any product records')
-                    else:
-                        quantity_of_serials = []
-                        id_of_serials = []
-                        location_ids = []
-                        for j in serial_numbers_with_right_length_ids:
+                    pur_ordertype_get = Retry2(s)
+                    pur_ordertype_get_json = pur_ordertype_get.json()
+                    purchase_ordertype_id = int(pur_ordertype_get_json[0]["Id"])
+                    supplier_url = f"https://{host}/sv/{company}/api/v1/Purchase/Suppliers?$filter=SupplierCode eq '{leverantorskod_uthyrning}'"
 
-                            serial_numbers_Q = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocationProductRecords?$filter=ProductRecordId eq {int(j)}"
+                    def Retry2(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=supplier_url, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
 
-                            def Retry300(s, max_tries=40):
-                                counter = 0
-                                while True:
-                                    reportResulst = s.get(url=serial_numbers_Q, verify=False)
-                                    if reportResulst.status_code == 200:
-                                        return reportResulst
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                                break
 
-                                    counter += 1
-                                    if counter == max_tries:
-                                        messagebox.showinfo("Error", f'Not able to fetch the stock balance on the serial numbers')
-                                        break
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
 
-                                    if reportResulst.status_code != 200:
-                                        r = Retry1(s)
-                                    time.sleep(0.4)
+                    supplier_get = Retry2(s)
+                    supplier_get_json = supplier_get.json()
+                    supplier_code = int(supplier_get_json[0]["Id"])
 
-                            serials_Q = Retry300(s)
-                            serials_Q_json = serials_Q.json()
-                            if float(serials_Q_json[0]["Quantity"]) > 0:
-                                id_of_serials.append(int(j))
-                                quantity_of_serials.append(float(serials_Q_json[0]["Quantity"]))
-                                location_ids.append(int(serials_Q_json[0]["PartLocationId"]))
-                        serials_end = []
-                        for idor, xdor, loc in zip(id_of_serials[:(int_Q)], quantity_of_serials[:(int_Q)], location_ids[:(int_Q)]):
-                            serial_keys = {
-                                "ProductRecordId": int(idor),
-                                "PartLocationId": int(loc),
-                                "Quantity": 1.0
-                            }
-                            serials_end.append(serial_keys)
-                        rows = [
-                            {
-                                "CustomerOrderRowId": int(r),
-                                "Quantity": float(int_Q),
-                                "DeleteFutureRest": False,
-                                "Locations": serials_end
-                            }
-                        ]
-                        url_post_departure = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders/ReportDeliveries"
-                        json_dep = {
-                            "Rows": rows
-                        }
-
-                        def Retry500(s, max_tries=40):
-                            counter = 0
-                            while True:
-                                reportResulst = s.post(url=url_post_departure, json=json_dep, verify=False)
-                                if reportResulst.status_code == 200:
-                                    return reportResulst
-
-                                counter += 1
-                                if counter == max_tries:
-                                    messagebox.showerror("Error", f'Not able to report dispatch on a row on the customer order, status message: {reportResulst.text}')
-                                    break
-
-                                if reportResulst.status_code != 200:
-                                    r = Retry1(s)
-                                time.sleep(0.4)
-
-                        co_and_rows = Retry500(s)
-                        co_and_rows_json = co_and_rows.json()
-                        if co_and_rows.status_code == 200:
-                            co_url_arrival = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders?$filter=OrderNumber eq '{str(UL_entry_ordernumber.get())}'&$expand=PurchaseOrder"
-
-                            def Retry800(s, max_tries=40):
-                                counter = 0
-                                while True:
-                                    reportResulst = s.get(url=co_url_arrival, verify=False)
-                                    if reportResulst.status_code == 200:
-                                        return reportResulst
-
-                                    counter += 1
-                                    if counter == max_tries:
-                                        messagebox.showinfo("Error", f'Not able to get the customer order for arrival reporting')
-                                        break
-
-                                    if reportResulst.status_code != 200:
-                                        r = Retry1(s)
-                                    time.sleep(0.4)
-
-                            co_know = Retry800(s)
-                            co_know_json = co_know.json()
-                            purchase_ordernumber = str(co_know_json[0]["PurchaseOrder"]["OrderNumber"])
-                            active_customer_del_address_id = int(co_know_json[0]["ActiveDeliveryAddressCustomerId"])
-
-                            cust_id = f"https://{host}/sv/{company}/api/v1/Sales/Customers?$filter=Id eq {active_customer_del_address_id}"
-
-                            def Retry1000(s, max_tries=40):
-                                counter = 0
-                                while True:
-                                    reportResulst = s.get(url=cust_id, verify=False)
-                                    if reportResulst.status_code == 200:
-                                        return reportResulst
-
-                                    counter += 1
-                                    if counter == max_tries:
-                                        messagebox.showerror("Error", f'Not able to fetch the purchase order')
-                                        break
-
-                                    if reportResulst.status_code != 200:
-                                        r = Retry1(s)
-                                    time.sleep(0.4)
-
-                            cust_cust = Retry1000(s)
-                            cust_cust_json = cust_cust.json()
-                            stock_location = str(cust_cust_json[0]["Code"])
-
-                            url_get_rows_PO = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders?$filter=OrderNumber eq '{purchase_ordernumber}' and LifeCycleState eq 10&$expand=Rows, Part"
-
-                            def Retry2(s, max_tries=40):
-                                counter = 0
-                                while True:
-                                    reportResulst = s.get(url=url_get_rows_PO, verify=False)
-                                    if reportResulst.status_code == 200:
-                                        return reportResulst
-
-                                    counter += 1
-                                    if counter == max_tries:
-                                        messagebox.showerror("Error", f'Not able to fetch the purchase order')
-                                        break
-
-                                    if reportResulst.status_code != 200:
-                                        r = Retry1(s)
-                                    time.sleep(0.4)
-
-                            po_and_rows = Retry2(s)
-                            po_and_rows_json = po_and_rows.json()
-                            if po_and_rows_json == []:
-                                messagebox.showerror("Error", f'Not able to fetch the purchase order')
-                            else:
-                                for ioren in po_and_rows_json[0]["Rows"]:
-                                    if int(ioren["LinkedStockOrderRowId"]) == int(r):
-                                        json_1 = {
-                                            "PurchaseOrderRowId": int(ioren["Id"]),
-                                            "Quantity": float(len(co_and_rows_json["ProductRecordIds"])),
-                                            "DeleteFutureRest": False,
-                                            "Locations": [{
-                                                "PartLocationName": f"{stock_location}",
-                                                "Quantity": float(len(co_and_rows_json["ProductRecordIds"]))  # ,
-                                                # "ProductRecords": serials_do_keys
-                                            }]
-                                        }
-                                        url_post_arrivals = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/ReportArrivals"
-                                        json = {
-                                            "Rows": [json_1]
-                                        }
-
-                                        def Retry2(s, max_tries=40):
-                                            counter = 0
-                                            while True:
-                                                reportResulst = s.post(url=url_post_arrivals, json=json, verify=False)
-                                                if reportResulst.status_code == 200:
-                                                    return reportResulst
-
-                                                counter += 1
-                                                if counter == max_tries:
-                                                    messagebox.showerror("Error", f'Not able to report arrival on a row on the purchase order, status message: {reportResulst.text}')
-                                                    break
-
-                                                if reportResulst.status_code != 200:
-                                                    r = Retry1(s)
-                                                time.sleep(0.4)
-
-                                        po_and_rows = Retry2(s)
-                                        po_and_rows_json = po_and_rows.json()
-                                    else:
-                                        pass
+                    #TODO: först hämta extra fält på ursprungligt serienummer, kan lika gärna göra det jämt
+                    #TODO: sedan skapa nytt serienummer om det diffar i längd
+                    #TODO: lägg till gamla och nya fält på det nya serienumret
+                    #TODO: uppdatera det gamla serienumret
+                    #TODO: gör array från if och else
+                    #TODO: skapa I-order och inleverera mot grundlagerstället
+                    #TODO: skapa fakturaunderlag på rätt bitar
+                else:
+                    pass
+            #     float_Q = float(o)
+            #     int_Q = int(float_Q)
+            #     langd = str(q)
+            #     partid = int(t)
+            #     if int_Q <= 0:
+            #         pass
+            #     else:
+            #         serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(partid)} and RegistrationNo eq '{langd}'&$orderby=ActualArrivalDate desc"
+            #
+            #         def Retry200(s, max_tries=40):
+            #             counter = 0
+            #             while True:
+            #                 reportResulst = s.get(url=serial_numbers_w_length, verify=False)
+            #                 if reportResulst.status_code == 200:
+            #                     return reportResulst
+            #
+            #                 counter += 1
+            #                 if counter == max_tries:
+            #                     messagebox.showinfo("Error", f'Not able to fetch the serial numbers')
+            #                     break
+            #
+            #                 if reportResulst.status_code != 200:
+            #                     r = Retry1(s)
+            #                 time.sleep(0.4)
+            #
+            #         serials = Retry200(s)
+            #         serials_json = serials.json()
+            #         serial_numbers_with_right_length = []
+            #         serial_numbers_with_right_length_ids = []
+            #         for i in serials_json:
+            #             serial_numbers_with_right_length_ids.append(i["Id"])
+            #             serial_numbers_with_right_length.append(i["SerialNumber"])
+            #         if not serial_numbers_with_right_length_ids:
+            #             messagebox.showinfo("Error", f'Issues with dispatch report one row on the order since the program did not find any product records')
+            #         else:
+            #             quantity_of_serials = []
+            #             id_of_serials = []
+            #             location_ids = []
+            #             for j in serial_numbers_with_right_length_ids:
+            #
+            #                 serial_numbers_Q = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocationProductRecords?$filter=ProductRecordId eq {int(j)}"
+            #
+            #                 def Retry300(s, max_tries=40):
+            #                     counter = 0
+            #                     while True:
+            #                         reportResulst = s.get(url=serial_numbers_Q, verify=False)
+            #                         if reportResulst.status_code == 200:
+            #                             return reportResulst
+            #
+            #                         counter += 1
+            #                         if counter == max_tries:
+            #                             messagebox.showinfo("Error", f'Not able to fetch the stock balance on the serial numbers')
+            #                             break
+            #
+            #                         if reportResulst.status_code != 200:
+            #                             r = Retry1(s)
+            #                         time.sleep(0.4)
+            #
+            #                 serials_Q = Retry300(s)
+            #                 serials_Q_json = serials_Q.json()
+            #                 if float(serials_Q_json[0]["Quantity"]) > 0:
+            #                     id_of_serials.append(int(j))
+            #                     quantity_of_serials.append(float(serials_Q_json[0]["Quantity"]))
+            #                     location_ids.append(int(serials_Q_json[0]["PartLocationId"]))
+            #             serials_end = []
+            #             for idor, xdor, loc in zip(id_of_serials[:(int_Q)], quantity_of_serials[:(int_Q)], location_ids[:(int_Q)]):
+            #                 serial_keys = {
+            #                     "ProductRecordId": int(idor),
+            #                     "PartLocationId": int(loc),
+            #                     "Quantity": 1.0
+            #                 }
+            #                 serials_end.append(serial_keys)
+            #             rows = [
+            #                 {
+            #                     "CustomerOrderRowId": int(r),
+            #                     "Quantity": float(int_Q),
+            #                     "DeleteFutureRest": False,
+            #                     "Locations": serials_end
+            #                 }
+            #             ]
+            #             url_post_departure = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders/ReportDeliveries"
+            #             json_dep = {
+            #                 "Rows": rows
+            #             }
+            #
+            #             def Retry500(s, max_tries=40):
+            #                 counter = 0
+            #                 while True:
+            #                     reportResulst = s.post(url=url_post_departure, json=json_dep, verify=False)
+            #                     if reportResulst.status_code == 200:
+            #                         return reportResulst
+            #
+            #                     counter += 1
+            #                     if counter == max_tries:
+            #                         messagebox.showerror("Error", f'Not able to report dispatch on a row on the customer order, status message: {reportResulst.text}')
+            #                         break
+            #
+            #                     if reportResulst.status_code != 200:
+            #                         r = Retry1(s)
+            #                     time.sleep(0.4)
+            #
+            #             co_and_rows = Retry500(s)
+            #             co_and_rows_json = co_and_rows.json()
+            #             if co_and_rows.status_code == 200:
+            #                 co_url_arrival = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders?$filter=OrderNumber eq '{str(UL_entry_ordernumber.get())}'&$expand=PurchaseOrder"
+            #
+            #                 def Retry800(s, max_tries=40):
+            #                     counter = 0
+            #                     while True:
+            #                         reportResulst = s.get(url=co_url_arrival, verify=False)
+            #                         if reportResulst.status_code == 200:
+            #                             return reportResulst
+            #
+            #                         counter += 1
+            #                         if counter == max_tries:
+            #                             messagebox.showinfo("Error", f'Not able to get the customer order for arrival reporting')
+            #                             break
+            #
+            #                         if reportResulst.status_code != 200:
+            #                             r = Retry1(s)
+            #                         time.sleep(0.4)
+            #
+            #                 co_know = Retry800(s)
+            #                 co_know_json = co_know.json()
+            #                 purchase_ordernumber = str(co_know_json[0]["PurchaseOrder"]["OrderNumber"])
+            #                 active_customer_del_address_id = int(co_know_json[0]["ActiveDeliveryAddressCustomerId"])
+            #
+            #                 cust_id = f"https://{host}/sv/{company}/api/v1/Sales/Customers?$filter=Id eq {active_customer_del_address_id}"
+            #
+            #                 def Retry1000(s, max_tries=40):
+            #                     counter = 0
+            #                     while True:
+            #                         reportResulst = s.get(url=cust_id, verify=False)
+            #                         if reportResulst.status_code == 200:
+            #                             return reportResulst
+            #
+            #                         counter += 1
+            #                         if counter == max_tries:
+            #                             messagebox.showerror("Error", f'Not able to fetch the purchase order')
+            #                             break
+            #
+            #                         if reportResulst.status_code != 200:
+            #                             r = Retry1(s)
+            #                         time.sleep(0.4)
+            #
+            #                 cust_cust = Retry1000(s)
+            #                 cust_cust_json = cust_cust.json()
+            #                 stock_location = str(cust_cust_json[0]["Code"])
+            #
+            #                 url_get_rows_PO = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders?$filter=OrderNumber eq '{purchase_ordernumber}' and LifeCycleState eq 10&$expand=Rows, Part"
+            #
+            #                 def Retry2(s, max_tries=40):
+            #                     counter = 0
+            #                     while True:
+            #                         reportResulst = s.get(url=url_get_rows_PO, verify=False)
+            #                         if reportResulst.status_code == 200:
+            #                             return reportResulst
+            #
+            #                         counter += 1
+            #                         if counter == max_tries:
+            #                             messagebox.showerror("Error", f'Not able to fetch the purchase order')
+            #                             break
+            #
+            #                         if reportResulst.status_code != 200:
+            #                             r = Retry1(s)
+            #                         time.sleep(0.4)
+            #
+            #                 po_and_rows = Retry2(s)
+            #                 po_and_rows_json = po_and_rows.json()
+            #                 if po_and_rows_json == []:
+            #                     messagebox.showerror("Error", f'Not able to fetch the purchase order')
+            #                 else:
+            #                     for ioren in po_and_rows_json[0]["Rows"]:
+            #                         if int(ioren["LinkedStockOrderRowId"]) == int(r):
+            #                             json_1 = {
+            #                                 "PurchaseOrderRowId": int(ioren["Id"]),
+            #                                 "Quantity": float(len(co_and_rows_json["ProductRecordIds"])),
+            #                                 "DeleteFutureRest": False,
+            #                                 "Locations": [{
+            #                                     "PartLocationName": f"{stock_location}",
+            #                                     "Quantity": float(len(co_and_rows_json["ProductRecordIds"]))  # ,
+            #                                     # "ProductRecords": serials_do_keys
+            #                                 }]
+            #                             }
+            #                             url_post_arrivals = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/ReportArrivals"
+            #                             json = {
+            #                                 "Rows": [json_1]
+            #                             }
+            #
+            #                             def Retry2(s, max_tries=40):
+            #                                 counter = 0
+            #                                 while True:
+            #                                     reportResulst = s.post(url=url_post_arrivals, json=json, verify=False)
+            #                                     if reportResulst.status_code == 200:
+            #                                         return reportResulst
+            #
+            #                                     counter += 1
+            #                                     if counter == max_tries:
+            #                                         messagebox.showerror("Error", f'Not able to report arrival on a row on the purchase order, status message: {reportResulst.text}')
+            #                                         break
+            #
+            #                                     if reportResulst.status_code != 200:
+            #                                         r = Retry1(s)
+            #                                     time.sleep(0.4)
+            #
+            #                             po_and_rows = Retry2(s)
+            #                             po_and_rows_json = po_and_rows.json()
+            #                         else:
+            #                             pass
 
         messagebox.showinfo("Info", "Utleveransen gick ok!")
         for u in my_tree_ul.get_children():
@@ -1655,6 +1770,7 @@ else:
     AL_entry_ordernumber.bind("<Return>", populate_treeview_AL)
 
     # Skal till TreeView för att hämta information från plocklista
+    #part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"])
     tree_frame_AL = Frame(tab3)
     tree_frame_AL.grid(row=3, column=0, sticky=W, columnspan=4, ipady=70, pady=(0, 10), padx=(10, 0))
     tree_scroll_AL = ttk.Scrollbar(tree_frame_AL)
@@ -1663,18 +1779,20 @@ else:
     my_tree_AL.tag_configure("Test", background="lightgrey", font=('Helvetica', 12, "italic"))
     my_tree_AL.tag_configure("Test1", background="white")
     tree_scroll_AL.config(command=my_tree_AL.yview)
-    my_tree_AL['columns'] = ("Återlämna", "Serienummer", "Artikelnr.", "Benämning", "Uthyrd längd", "Återl. längd", "Rengör", "ID", "PARTID")
+    my_tree_AL['columns'] = ("Återlämna", "Serienummer", "Artikelnr.", "Benämning", "Uthyrd längd", "Återl. längd", "Rengör", "PARTID", "PR_ID", "QUANTITY", "PL_ID")
     my_tree_AL['displaycolumns'] = ("Återlämna", "Serienummer", "Artikelnr.", "Benämning", "Uthyrd längd", "Återl. längd", "Rengör")
     my_tree_AL.column("#0", width=1, minwidth=1, stretch=0)
     my_tree_AL.column("Återlämna", anchor=W, width=100)
-    my_tree_AL.column("Serienummer", anchor=W, width=110)
+    my_tree_AL.column("Serienummer", anchor=W, width=130)
     my_tree_AL.column("Artikelnr.", anchor=W, width=110)
-    my_tree_AL.column("Benämning", anchor=W, width=260)
+    my_tree_AL.column("Benämning", anchor=W, width=230)
     my_tree_AL.column("Uthyrd längd", anchor=W, width=110)
     my_tree_AL.column("Återl. längd", anchor=W, width=110)
     my_tree_AL.column("Rengör", anchor=W, width=90)
-    my_tree_AL.column("ID", anchor=W, width=90)
     my_tree_AL.column("PARTID", anchor=W, width=90)
+    my_tree_AL.column("PR_ID", anchor=W, width=90)
+    my_tree_AL.column("QUANTITY", anchor=W, width=90)
+    my_tree_AL.column("PL_ID", anchor=W, width=90)
 
     my_tree_AL.heading("#0", text="", anchor=W)
     my_tree_AL.heading("Återlämna", text="Återlämna", anchor=W)
@@ -1684,19 +1802,16 @@ else:
     my_tree_AL.heading("Uthyrd längd", text="Uthyrd längd", anchor=W)
     my_tree_AL.heading("Återl. längd", text="Återl. längd", anchor=W)
     my_tree_AL.heading("Rengör", text="Rengör", anchor=W)
-    my_tree_AL.heading("ID", text="ID", anchor=W)
-    my_tree_AL.heading("PARTID", text="ID", anchor=W)
+    my_tree_AL.heading("PARTID", text="PARTID", anchor=W)
+    my_tree_AL.heading("PR_ID", text="PR_ID", anchor=W)
+    my_tree_AL.heading("QUANTITY", text="QUANTITY", anchor=W)
+    my_tree_AL.heading("PL_ID", text="PL_ID", anchor=W)
     my_tree_AL.pack(fill='both', expand=True)
 
-    my_tree_AL.insert('', 'end', values=(1, 2, 3, 4, 5, 6, 7, 8))
     AL_label_recieve = ttk.Label(tab3, text="Återlämnad längd: ", font=("Calibri", 14, "bold"))
     AL_label_recieve.grid(row=4, column=0, padx=(10, 0), pady=(0, 2), sticky=W)
     AL_entry_recieve = ttk.Entry(tab3, font=("Calibri", 14))
     AL_entry_recieve.grid(row=5, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
-    def set_state():
-        var.set(0)
-    def get_state():
-        print(var.get())
 
     var = IntVar(value=0)
     var2 = IntVar(value=0)
@@ -1711,12 +1826,12 @@ else:
     # UL_entry_length = ttk.Entry(tab2, font=("Calibri", 14))
     # UL_entry_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
 
-    AL_button_edit = ttk.Button(tab3, text="Uppdatera", style="my.TButton", command=get_state)
+    AL_button_edit = ttk.Button(tab3, text="Uppdatera", style="my.TButton", command=update_record_UL)
     AL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
-    AL_button_recieve = ttk.Button(tab3, text="Utleverera", style="my.TButton", command=set_state)
+    AL_button_recieve = ttk.Button(tab3, text="Utleverera", style="my.TButton", command=create_invoice)
     AL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
 
-    my_tree_AL.bind('<ButtonRelease-1>', select_record_UL)
+    my_tree_AL.bind('<ButtonRelease-1>', select_record_AL)
 
 
 
