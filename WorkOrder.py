@@ -1485,6 +1485,7 @@ else:
         else:
             for var_aterlamna, var_serienummer, var_artnr, var_ben, var_uthyrd, var_ater, var_rengor, var_partid, var_pr_id, var_quantity, var_pl_id in zip(aterlamna, serienummer, artnr, ben, uthyrd, ater, rengor, partid, pr_id, quantity, pl_id):
                 if var_aterlamna == 1:
+
                     purchase_ordertype_url = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrderTypes?$filter=Number eq 3"
 
                     def Retry2(s, max_tries=40):
@@ -1529,6 +1530,255 @@ else:
                     supplier_code = int(supplier_get_json[0]["Id"])
 
                     #TODO: först hämta extra fält på ursprungligt serienummer, kan lika gärna göra det jämt
+
+                    # serienummer_tillgangskonto = parser['logics_EF']['serienummer_tillgangskonto']
+                    # serienummer_avskrivningskonto = parser['logics_EF']['serienummer_avskrivningskonto']
+                    # serienummer_anskaffningsvarde = parser['logics_EF']['serienummer_anskaffningsvarde']
+                    # serienummer_restvarde = parser['logics_EF']['serienummer_restvarde']
+                    # serienummer_avskriven = parser['logics_EF']['serienummer_avskriven']
+                    # serienummer_avskrivningstid = parser['logics_EF']['serienummer_avskrivningstid']
+                    # serienummer_klar = parser['logics_EF']['serienummer_klar']
+                    # serienummer_utrangeratpris = parser['logics_EF']['serienummer_utrangeratpris']
+                    # serienummer_utrangeratdatum = parser['logics_EF']['serienummer_utrangeratdatum']
+
+                    SERTILLG = None
+                    SERAVSKR = None
+                    SERANSKA = None
+                    SERRESTV = None
+                    SERAVSKREN = None
+                    SERAVSTID = None
+                    SERKLAR = None
+                    SERUTRANG = None
+                    SERUTRANGD = None
+                    for ef_value in inleverans_ef_sn:
+                        if ef_value == f'{serienummer_tillgangskonto}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error1", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERTILLG = int(ef_result_json[0]["IntegerValue"])
+                        elif ef_value == f'{serienummer_avskrivningskonto}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERAVSKR = int(ef_result_json[0]["IntegerValue"])
+                        elif ef_value == f'{serienummer_anskaffningsvarde}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERANSKA = float(ef_result_json[0]["DecimalValue"])
+                        elif ef_value == f'{serienummer_restvarde}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERRESTV = float(ef_result_json[0]["DecimalValue"])
+                        elif ef_value == f'{serienummer_avskriven}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERAVSKREN = str(ef_result_json[0]["StringValue"])
+                        elif ef_value == f'{serienummer_avskrivningstid}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERAVSTID = int(ef_result_json[0]["IntegerValue"])
+                        elif ef_value == f'{serienummer_klar}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERKLAR = (ef_result_json[0]["DateOnlyValue"])
+                                SERKLAR = str(SERKLAR[0:10])
+                        elif ef_value == f'{serienummer_utrangeratpris}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERUTRANG = float(ef_result_json[0]["DecimalValue"])
+                        elif ef_value == f'{serienummer_utrangeratdatum}':
+                            ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {var_pr_id} and Identifier eq '{ef_value}'"
+
+                            def Retry2(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=ef_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error2", f'Error find the extra field')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            ef_result = Retry2(s)
+                            if ef_result == []:
+                                pass
+                            else:
+                                ef_result_json = ef_result.json()
+                                SERUTRANGD = (ef_result_json[0]["DateOnlyValue"])
+                                SERUTRANGD = str(SERUTRANGD[0:10])
+
                     #TODO: sedan skapa nytt serienummer om det diffar i längd
                     #TODO: lägg till gamla och nya fält på det nya serienumret
                     #TODO: uppdatera det gamla serienumret
