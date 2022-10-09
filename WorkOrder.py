@@ -85,6 +85,8 @@ else:
     inleverans_ef_sn.append(serienummer_restvarde)
     inleverans_ef_sn.append(serienummer_avskrivningstid)
     inleverans_ef_sn.append(serienummer_klar)
+    inleverans_ef_sn.append(serienummer_utrangeratpris)
+    inleverans_ef_sn.append(serienummer_utrangeratdatum)
 
 
     # plockare_EF = parser['logics']['plockare_EF']
@@ -1483,63 +1485,98 @@ else:
 
 
         else:
+            purchase_ordertype_url = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrderTypes?$filter=Number eq 3"
+
+            def Retry2(s, max_tries=40):
+                counter = 0
+                while True:
+                    reportResulst = s.get(url=purchase_ordertype_url, verify=False)
+                    if reportResulst.status_code == 200:
+                        return reportResulst
+
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                        break
+
+                    if reportResulst.status_code != 200:
+                        r = Retry1(s)
+                    time.sleep(0.4)
+
+            pur_ordertype_get = Retry2(s)
+            pur_ordertype_get_json = pur_ordertype_get.json()
+            purchase_ordertype_id = int(pur_ordertype_get_json[0]["Id"])
+            supplier_url = f"https://{host}/sv/{company}/api/v1/Purchase/Suppliers?$filter=SupplierCode eq '{leverantorskod_uthyrning}'"
+
+            def Retry2(s, max_tries=40):
+                counter = 0
+                while True:
+                    reportResulst = s.get(url=supplier_url, verify=False)
+                    if reportResulst.status_code == 200:
+                        return reportResulst
+
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                        break
+
+                    if reportResulst.status_code != 200:
+                        r = Retry1(s)
+                    time.sleep(0.4)
+
+            supplier_get = Retry2(s)
+            supplier_get_json = supplier_get.json()
+            supplier_code = int(supplier_get_json[0]["Id"])
+
+            customer_id = f"https://{host}/sv/{company}/api/v1/Sales/Customers?$filter=Code eq '{AL_entry_ordernumber.get()}'"
+
+            def RetryCust(s, max_tries=40):
+                counter = 0
+                while True:
+                    reportResulst = s.get(url=customer_id, verify=False)
+                    if reportResulst.status_code == 200:
+                        return reportResulst
+
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to fetch the pricelist for the customer')
+                        break
+
+                    if reportResulst.status_code != 200:
+                        r = Retry1(s)
+                    time.sleep(0.4)
+
+            cust_price = RetryCust(s)
+            cust_price_json = cust_price.json()
+            pricelist_id = int(cust_price_json[0]["PriceListId"])
+
+
             for var_aterlamna, var_serienummer, var_artnr, var_ben, var_uthyrd, var_ater, var_rengor, var_partid, var_pr_id, var_quantity, var_pl_id in zip(aterlamna, serienummer, artnr, ben, uthyrd, ater, rengor, partid, pr_id, quantity, pl_id):
                 if var_aterlamna == 1:
 
-                    purchase_ordertype_url = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrderTypes?$filter=Number eq 3"
+                    price_real = f"https://{host}/sv/{company}/api/v1/Sales/SalesPrices?$filter=PriceListId eq {pricelist_id} and PartId eq {int(var_partid)}"
 
-                    def Retry2(s, max_tries=40):
+                    def RetryPrice(s, max_tries=40):
                         counter = 0
                         while True:
-                            reportResulst = s.get(url=purchase_ordertype_url, verify=False)
+                            reportResulst = s.get(url=price_real, verify=False)
                             if reportResulst.status_code == 200:
                                 return reportResulst
 
                             counter += 1
                             if counter == max_tries:
-                                messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                                messagebox.showerror("Error", f'Not able to fetch the pricelist for the customer')
                                 break
 
                             if reportResulst.status_code != 200:
                                 r = Retry1(s)
                             time.sleep(0.4)
 
-                    pur_ordertype_get = Retry2(s)
-                    pur_ordertype_get_json = pur_ordertype_get.json()
-                    purchase_ordertype_id = int(pur_ordertype_get_json[0]["Id"])
-                    supplier_url = f"https://{host}/sv/{company}/api/v1/Purchase/Suppliers?$filter=SupplierCode eq '{leverantorskod_uthyrning}'"
-
-                    def Retry2(s, max_tries=40):
-                        counter = 0
-                        while True:
-                            reportResulst = s.get(url=supplier_url, verify=False)
-                            if reportResulst.status_code == 200:
-                                return reportResulst
-
-                            counter += 1
-                            if counter == max_tries:
-                                messagebox.showerror("Error", f'Not able to fetch the warehouse')
-                                break
-
-                            if reportResulst.status_code != 200:
-                                r = Retry1(s)
-                            time.sleep(0.4)
-
-                    supplier_get = Retry2(s)
-                    supplier_get_json = supplier_get.json()
-                    supplier_code = int(supplier_get_json[0]["Id"])
+                    real_price = RetryPrice(s)
+                    real_price_json = real_price.json()
+                    real_price_price = float(real_price_json[0]["FuturePrice"])
 
                     #TODO: först hämta extra fält på ursprungligt serienummer, kan lika gärna göra det jämt
-
-                    # serienummer_tillgangskonto = parser['logics_EF']['serienummer_tillgangskonto']
-                    # serienummer_avskrivningskonto = parser['logics_EF']['serienummer_avskrivningskonto']
-                    # serienummer_anskaffningsvarde = parser['logics_EF']['serienummer_anskaffningsvarde']
-                    # serienummer_restvarde = parser['logics_EF']['serienummer_restvarde']
-                    # serienummer_avskriven = parser['logics_EF']['serienummer_avskriven']
-                    # serienummer_avskrivningstid = parser['logics_EF']['serienummer_avskrivningstid']
-                    # serienummer_klar = parser['logics_EF']['serienummer_klar']
-                    # serienummer_utrangeratpris = parser['logics_EF']['serienummer_utrangeratpris']
-                    # serienummer_utrangeratdatum = parser['logics_EF']['serienummer_utrangeratdatum']
 
                     SERTILLG = None
                     SERAVSKR = None
@@ -1571,7 +1608,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1596,7 +1633,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1621,7 +1658,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1646,7 +1683,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1671,7 +1708,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1696,7 +1733,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1721,7 +1758,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1747,7 +1784,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1772,7 +1809,7 @@ else:
                                     time.sleep(0.4)
 
                             ef_result = Retry2(s)
-                            if ef_result == []:
+                            if ef_result.text == [] or ef_result.text == "[]":
                                 pass
                             else:
                                 ef_result_json = ef_result.json()
@@ -1780,6 +1817,135 @@ else:
                                 SERUTRANGD = str(SERUTRANGD[0:10])
 
                     #TODO: sedan skapa nytt serienummer om det diffar i längd
+
+                    if var_uthyrd != var_ater:
+                        ef_pr = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=StartsWith(SerialNumber, 'SER9')&$orderby=SerialNumber desc&$top=1"
+
+                        def Retry100(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_pr, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error", f'Not able to find the starting product record')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_pr = Retry100(s)
+                        ef_pr_json = ef_pr.json()
+                        next_serial_number_string = ef_pr_json[0]["SerialNumber"]
+                        nextserial = int(next_serial_number_string[3:])
+                        nextserial_final = nextserial+1
+
+                        url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/Create"
+                        inloggning = \
+                            {
+                                "TraceabilityIdentifier": "SER" + str(nextserial_final),
+                                "Type": int(0),
+                                "PartId": int(var_partid)
+                            }
+
+                        def RetryZ(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                # s = requests.session()
+                                r = s.post(url=url, json=inloggning, verify=False)
+                                if r.status_code == 200:
+                                    return r
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error", f'Not able to create the product record')
+                                    break
+                                time.sleep(0.4)
+
+                        product_Record_create = RetryZ(s)
+                        product_Record_create_json = product_Record_create.json()
+                        product_new_record_id = int(product_Record_create_json["EntityId"])
+
+                        url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
+                        json_product_record = {
+                            "ProductRecordId": int(product_new_record_id),
+                            "RegistrationNo": {"Value": str(int(var_uthyrd)-int(var_ater))}
+                        }
+
+                        def RetryZZ(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.post(url=url_product_record_update, json=json_product_record, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showerror("Error", f'Not able to update the charge numbers, since the row has been reported arrival, \nplease update the charge numbers manually')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        product_record_update = RetryZZ(s)
+                        product_record_update_json = product_record_update.json()
+
+                        # serienummer_tillgangskonto = parser['logics_EF']['serienummer_tillgangskonto']
+                        # serienummer_avskrivningskonto = parser['logics_EF']['serienummer_avskrivningskonto']
+                        # serienummer_anskaffningsvarde = parser['logics_EF']['serienummer_anskaffningsvarde']
+                        # serienummer_restvarde = parser['logics_EF']['serienummer_restvarde']
+                        # serienummer_avskriven = parser['logics_EF']['serienummer_avskriven']
+                        # serienummer_avskrivningstid = parser['logics_EF']['serienummer_avskrivningstid']
+                        # serienummer_klar = parser['logics_EF']['serienummer_klar']
+                        # serienummer_utrangeratpris = parser['logics_EF']['serienummer_utrangeratpris']
+                        # serienummer_utrangeratdatum = parser['logics_EF']['serienummer_utrangeratdatum']
+                        anskaffningsvarde_ny = round(float(SERANSKA)*float((int(var_uthyrd)-int(var_ater))/int(var_uthyrd)), 2)
+                        anskaffningsvarde_gammal = round(float(SERANSKA)*float(1-((int(var_uthyrd)-int(var_ater))/int(var_uthyrd))), 2)
+                        restvarde_ny = round(float(SERRESTV)*float((int(var_uthyrd)-int(var_ater))/int(var_uthyrd)), 2)
+                        restvarde_gammal = round(float(SERRESTV)*float(1-((int(var_uthyrd)-int(var_ater))/int(var_uthyrd))), 2)
+
+
+                        lista_ef_ny_pr = []
+
+                        for j in inleverans_ef_sn:
+                            date_now = datetime.now().date()
+                            if j == serienummer_utrangeratpris:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_utrangeratpris, "DecimalValue": float(float((int(var_uthyrd)-int(var_ater))/1000)*float(real_price_price))})
+                            elif j == serienummer_utrangeratdatum:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_utrangeratdatum, "DateOnlyValue": f"{date_now}"})
+                            elif j == serienummer_anskaffningsvarde:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_anskaffningsvarde, "DecimalValue": float(anskaffningsvarde_ny)})
+                            elif j == serienummer_restvarde:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_restvarde, "DecimalValue": float(restvarde_ny)})
+
+                        url_ef_value_sn = f"https://{host}/sv/{company}/api/v1/Common/Commands/SetExtraFieldValues"
+                        json_ef_values = {
+                            "EntityId": int(product_new_record_id),
+                            "EntityType": 0,
+                            "Values": lista_ef_ny_pr
+                        }
+
+                        def Retry7(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.post(url=url_ef_value_sn, json=json_ef_values, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showerror("Error", f'Was not able to set extra field values on product record id {product_new_record_id}')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_values_update = Retry7(s)
+                        ef_values_update_json = ef_values_update.json()
                     #TODO: lägg till gamla och nya fält på det nya serienumret
                     #TODO: uppdatera det gamla serienumret
                     #TODO: gör array från if och else
