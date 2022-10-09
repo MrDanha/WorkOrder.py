@@ -53,6 +53,8 @@ else:
 
     ODBC = parser['ODBC']['DSN']
 
+    #lagerplats_otvattat
+    lagerplats_otvattat = parser['logics']['lagerplats_otvattat']
     lagerplats = parser['logics']['lagerplats']
     lagerstalle = parser['logics']['lagerstalle']
     leverantorskod_uthyrning = parser['logics']['leverantorskod_uthyrning']
@@ -509,6 +511,8 @@ else:
                             "Quantity": 1.0
                         }
                     serials_end.append(serial_keys)
+
+                    # KUK
                 json = {
                     "PurchaseOrderRowId": int(r),
                     "Quantity": float(o),
@@ -1818,31 +1822,179 @@ else:
 
                     #TODO: sedan skapa nytt serienummer om det diffar i längd
 
+
+                    ef_pr = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=StartsWith(SerialNumber, 'SER9')&$orderby=SerialNumber desc&$top=1"
+
+                    def Retry100(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=ef_pr, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showinfo("Error", f'Not able to find the starting product record')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    ef_pr = Retry100(s)
+                    ef_pr_json = ef_pr.json()
+                    next_serial_number_string = ef_pr_json[0]["SerialNumber"]
+                    nextserial = int(next_serial_number_string[3:])
+                    nextserial_final = nextserial+1
+
+                    create_PO = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/Create"
+                    json_create_po = {
+                                          "SupplierId": int(supplier_code),
+                                          "OrderTypeId": int(purchase_ordertype_id),
+                                          "IsStockOrder": True
+                                        }
+
+                    def RetryCPO(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=create_PO, json=json_create_po, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Couldnt create the purchase order')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    create_po_create = RetryCPO(s)
+                    create_po_create_json = create_po_create.json()
+                    po_id = create_po_create_json["EntityId"]
+
+                    create_PO_row = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/AddRow"
+                    json_create_po_row = {
+                                              "PurchaseOrderId": int(po_id),
+                                              "PartId": int(var_partid),
+                                              "OrderedQuantity": 1.0,
+                                              "OrderRowType": int(1)
+                                            }
+
+                    def RetryCPOR(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=create_PO_row, json=json_create_po_row, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Couldnt create the row on the purchase order')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    create_po_row_create = RetryCPOR(s)
+                    create_po_row_create_json = create_po_row_create.json()
+                    por_id = create_po_row_create_json["EntityId"]
+
+                    linked_cust_order = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrderRows?$filter=Id eq {int(por_id)}"
+
+                    def RetryLINKED(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=linked_cust_order, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    linked_cust_order_get = RetryLINKED(s)
+                    linked_cust_order_get_json = linked_cust_order_get.json()
+                    linked_stock_order_id = int(linked_cust_order_get_json[0]["LinkedStockOrderRowId"])
+
+                    json_del = {
+                                  "Rows": [
+                                      {
+                                          "CustomerOrderRowId": linked_stock_order_id,
+                                          "Quantity": 1.0,
+                                          "DeleteFutureRest": False,
+                                          "Locations": [
+                                              {
+                                                  "Quantity": 1.0,
+                                                  "PartLocationId": int(var_pl_id),
+                                                  "ProductRecordId": int(var_pr_id)
+                                              }
+                                          ]
+                                      }
+                                  ]
+}
+                    url_post_deli = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders/ReportDeliveries"
+
+                    def RetryDA(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=url_post_deli, json=json_del, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to report arrival on a row on the purchase order, status message: {reportResulst.text}')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    del_and_rows = RetryDA(s)
+                    del_and_rows_json = del_and_rows.json()
+
+                    json = {
+                        "PurchaseOrderRowId": int(por_id),
+                        "Quantity": float(1.0),
+                        "DeleteFutureRest": False,
+                        "Locations": [{
+                            "PartLocationName": f"{lagerplats_otvattat}",
+                            "Quantity": float(1.0)
+                        }]
+                    }
+                    url_post_arrivals = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/ReportArrivals"
+                    json = {
+                        "Rows": [json]
+                    }
+
+                    def RetryRA(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=url_post_arrivals, json=json, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to report arrival on a row on the purchase order, status message: {reportResulst.text}')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    po_and_rows = RetryRA(s)
+                    po_and_rows_json = po_and_rows.json()
+                    product_old_record_id = po_and_rows_json["ProductRecordIds"][0]
                     if var_uthyrd != var_ater:
-                        ef_pr = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=StartsWith(SerialNumber, 'SER9')&$orderby=SerialNumber desc&$top=1"
-
-                        def Retry100(s, max_tries=40):
-                            counter = 0
-                            while True:
-                                reportResulst = s.get(url=ef_pr, verify=False)
-                                if reportResulst.status_code == 200:
-                                    return reportResulst
-
-                                counter += 1
-                                if counter == max_tries:
-                                    messagebox.showinfo("Error", f'Not able to find the starting product record')
-                                    break
-
-                                if reportResulst.status_code != 200:
-                                    r = Retry1(s)
-                                time.sleep(0.4)
-
-                        ef_pr = Retry100(s)
-                        ef_pr_json = ef_pr.json()
-                        next_serial_number_string = ef_pr_json[0]["SerialNumber"]
-                        nextserial = int(next_serial_number_string[3:])
-                        nextserial_final = nextserial+1
-
                         url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/Create"
                         inloggning = \
                             {
@@ -1909,7 +2061,6 @@ else:
 
 
                         lista_ef_ny_pr = []
-
                         for j in inleverans_ef_sn:
                             date_now = datetime.now().date()
                             if j == serienummer_utrangeratpris:
@@ -1920,6 +2071,14 @@ else:
                                 lista_ef_ny_pr.append({"Identifier": serienummer_anskaffningsvarde, "DecimalValue": float(anskaffningsvarde_ny)})
                             elif j == serienummer_restvarde:
                                 lista_ef_ny_pr.append({"Identifier": serienummer_restvarde, "DecimalValue": float(restvarde_ny)})
+                            elif j == serienummer_avskrivningskonto:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_avskrivningskonto, "IntegerValue": int(SERAVSKR)})
+                            elif j == serienummer_klar:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_klar, "DateOnlyValue": f"{str(SERKLAR)}"})
+                            elif j == serienummer_avskrivningstid:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_avskrivningstid, "IntegerValue": int(SERAVSTID)})
+                            elif j == serienummer_tillgangskonto:
+                                lista_ef_ny_pr.append({"Identifier": serienummer_tillgangskonto, "IntegerValue": int(SERTILLG)})
 
                         url_ef_value_sn = f"https://{host}/sv/{company}/api/v1/Common/Commands/SetExtraFieldValues"
                         json_ef_values = {
@@ -1946,6 +2105,69 @@ else:
 
                         ef_values_update = Retry7(s)
                         ef_values_update_json = ef_values_update.json()
+
+                        url_product_record_update_old = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
+                        json_product_record_old = {
+                            "ProductRecordId": int(product_old_record_id),
+                            "RegistrationNo": {"Value": str(int(var_uthyrd)-(int(var_uthyrd) - int(var_ater)))}
+                        }
+
+                        def Retry_old_pr(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.post(url=url_product_record_update_old, json=json_product_record_old, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showerror("Error", f'Not able to update the charge numbers, since the row has been reported arrival, \nplease update the charge numbers manually')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        product_record_update_old = Retry_old_pr(s)
+                        product_record_update_old_json = product_record_update_old.json()
+
+                        lista_ef_gammal_pr = []
+                        for j in inleverans_ef_sn:
+                            date_now = datetime.now().date()
+
+                            if j == serienummer_anskaffningsvarde:
+                                lista_ef_gammal_pr.append({"Identifier": serienummer_anskaffningsvarde, "DecimalValue": float(anskaffningsvarde_gammal)})
+                            elif j == serienummer_restvarde:
+                                lista_ef_gammal_pr.append({"Identifier": serienummer_restvarde, "DecimalValue": float(restvarde_gammal)})
+
+                        url_ef_value_sn_old = f"https://{host}/sv/{company}/api/v1/Common/Commands/SetExtraFieldValues"
+                        json_ef_values_old = {
+                            "EntityId": int(product_old_record_id),
+                            "EntityType": 0,
+                            "Values": lista_ef_gammal_pr
+                        }
+
+                        def Retryold(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.post(url=url_ef_value_sn_old, json=json_ef_values_old, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showerror("Error", f'Was not able to set extra field values on product record id {product_new_record_id}')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_values_update_old = Retryold(s)
+                        ef_values_update_old_json = ef_values_update_old.json()
+
+                    #TODO: HUR SKALL VI SALDOHANTERA DET NYA SERIENUMRET?
+
                     #TODO: lägg till gamla och nya fält på det nya serienumret
                     #TODO: uppdatera det gamla serienumret
                     #TODO: gör array från if och else
