@@ -2756,7 +2756,120 @@ else:
                                     }
                                 ]
                             })
+                    elif var_ater == var_uthyrd:
+                        WH_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{LS_huvud}'"
 
+                        def RetryWH(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=WH_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        WH_Get = RetryWH(s)
+                        WH_Get_json = WH_Get.json()
+                        wh_id = int(WH_Get_json[0]["Id"])
+                        part_rengor = None
+
+                        for ef_value in artikel_ef:
+                            if ef_value == f'{artikel_rengoring}':
+                                ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {int(var_partid)} and Identifier eq '{ef_value}'"
+
+                                def RetryEFEF(s, max_tries=40):
+                                    counter = 0
+                                    while True:
+                                        reportResulst = s.get(url=ef_url, verify=False)
+                                        if reportResulst.status_code == 200:
+                                            return reportResulst
+
+                                        counter += 1
+                                        if counter == max_tries:
+                                            messagebox.showinfo("Error1", f'Error find the extra field')
+                                            break
+
+                                        if reportResulst.status_code != 200:
+                                            r = Retry1(s)
+                                        time.sleep(0.4)
+
+                                ef_result = RetryEFEF(s)
+                                if ef_result.text == [] or ef_result.text == "[]":
+                                    pass
+                                else:
+                                    ef_result_json = ef_result.json()
+                                    part_rengor = str(ef_result_json[0]["StringValue"])
+                        if part_rengor != None:
+                            rengor_part = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=PartNumber eq '{str(part_rengor)}'"
+
+                            def RetryRENGOR(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=rengor_part, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error1", f'Did not find the part id for the cleaning part')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            rengor_get = RetryRENGOR(s)
+                            rengor_get_json = rengor_get.json()
+                            rengor_id = int(rengor_get_json[0]["Id"])
+                            rengor_unit_id = int(rengor_get_json[0]["StandardUnitId"])
+
+                            post_price_info = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders/GetPriceInfo"
+                            json_post_price_info = {
+                                "PartId": int(rengor_id),
+                                "CustomerId": int(end_customer_id),
+                                "UnitId": int(rengor_unit_id),
+                                "QuantityInUnit": 1.0,
+                                "UseExtendedResult": True
+                            }
+
+                            def RetryPRICE(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.post(url=post_price_info, json=json_post_price_info, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showerror("Error", f'Couldnt fetch the price for the cleaning part')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            post_price_info_get = RetryPRICE(s)
+                            if post_price_info_get.text == [] or post_price_info_get.text == "[]":
+                                rengor_price_final = float(0)
+                            else:
+                                post_price_info_get_json = post_price_info_get.json()
+                                rengor_price_final = float(post_price_info_get_json["UnitPrice"])
+                            if rengor_price_final != 0:
+                                customer_order_rows.append({
+                                    "PartId": int(rengor_id),
+                                    "OrderedQuantity": 1.0,
+                                    "Price": round(float(float(int(var_uthyrd) / 1000) * float(rengor_price_final)), 2),
+                                    "WarehouseId": int(wh_id),
+                                    "OrderRowType": 1,
+                                    "AffectStockBalance": False
+                                })
 
                 else:
                     pass
@@ -3085,6 +3198,115 @@ else:
     AL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
 
     my_tree_AL.bind('<ButtonRelease-1>', select_record_AL)
+
+
+
+
+
+
+
+    # TAB 4 Design!
+
+    SPL_label_rutin = ttk.Label(tab4, text="Split av serienummer", font=("Calibri", 18, "bold"))
+    SPL_label_rutin.grid(row=0, column=0, padx=(10, 0), pady=(2, 20), sticky=W, columnspan=2)
+
+    # Label till ordernummer i rapportera inleverans
+    SPL_label_ordernumber = ttk.Label(tab4, text="Serienummer: ", font=("Calibri", 14, "bold"))
+    SPL_label_ordernumber.grid(row=1, column=0, padx=(10, 0), pady=1, sticky=W)
+
+    # Entry till ordernummer
+    SPL_entry_ordernumber = ttk.Entry(tab4, font=("Calibri", 14))
+    SPL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 20), sticky=W)
+    SPL_entry_ordernumber.bind("<Return>", populate_treeview_AL)
+
+    # Label till ordernummer i rapportera inleverans
+    SPL_label_langd = ttk.Label(tab4, text="Längd: ", font=("Calibri", 12, "bold"))
+    SPL_label_langd.grid(row=3, column=0, padx=(10, 0), pady=1, sticky=W)
+
+    SPL_label_aterstaende = ttk.Label(tab4, text="Återstående längd: ", font=("Calibri", 12, "bold"))
+    SPL_label_aterstaende.grid(row=4, column=0, padx=(10, 0), pady=(0,20), sticky=W)
+
+    SPL_label_langd_input = ttk.Label(tab4, text="20000", font=("Calibri", 12, "bold"))
+    SPL_label_langd_input.grid(row=3, column=1, padx=(2, 0), pady=1, sticky=W)
+
+    SPL_label_aterstaende_input = ttk.Label(tab4, text="10000", font=("Calibri", 12, "bold"))
+    SPL_label_aterstaende_input.grid(row=4, column=1, padx=(2, 0), pady=(0, 20), sticky=W)
+
+    # Skal till TreeView för att hämta information från plocklista
+    # part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"])
+    tree_frame_SPL = Frame(tab4)
+    tree_frame_SPL.grid(row=5, column=0, sticky=W, columnspan=4, ipadx=390, ipady=40, pady=(0, 10), padx=(10, 0))
+    tree_scroll_SPL = ttk.Scrollbar(tree_frame_SPL)
+    tree_scroll_SPL.pack(side=RIGHT, fill=Y)
+    my_tree_SPL = ttk.Treeview(tree_frame_SPL, style="Custom.Treeview", yscrollcommand=tree_scroll_SPL.set)
+    my_tree_SPL.tag_configure("Test", background="lightgrey", font=('Helvetica', 12, "italic"))
+    my_tree_SPL.tag_configure("Test1", background="white")
+    tree_scroll_SPL.config(command=my_tree_SPL.yview)
+    my_tree_SPL['columns'] = ("Längd", "Serienummer", "Artikelnr.", "Benämning", "Uthyrd längd", "Återl. längd", "Rengör", "PARTID", "PR_ID", "QUANTITY", "PL_ID")
+    my_tree_SPL['displaycolumns'] = ("Längd")
+    my_tree_SPL.column("#0", width=1, minwidth=1, stretch=0)
+    my_tree_SPL.column("Längd", anchor=W, width=100)
+    my_tree_SPL.column("Serienummer", anchor=W, width=130)
+    my_tree_SPL.column("Artikelnr.", anchor=W, width=110)
+    my_tree_SPL.column("Benämning", anchor=W, width=230)
+    my_tree_SPL.column("Uthyrd längd", anchor=W, width=110)
+    my_tree_SPL.column("Återl. längd", anchor=W, width=110)
+    my_tree_SPL.column("Rengör", anchor=W, width=90)
+    my_tree_SPL.column("PARTID", anchor=W, width=90)
+    my_tree_SPL.column("PR_ID", anchor=W, width=90)
+    my_tree_SPL.column("QUANTITY", anchor=W, width=90)
+    my_tree_SPL.column("PL_ID", anchor=W, width=90)
+
+    my_tree_SPL.heading("#0", text="", anchor=W)
+    my_tree_SPL.heading("Längd", text="Längd", anchor=W)
+    my_tree_SPL.heading("Serienummer", text="Serienummer", anchor=W)
+    my_tree_SPL.heading("Artikelnr.", text="Artikelnr", anchor=W)
+    my_tree_SPL.heading("Benämning", text="Benämning", anchor=W)
+    my_tree_SPL.heading("Uthyrd längd", text="Uthyrd längd", anchor=W)
+    my_tree_SPL.heading("Återl. längd", text="Återl. längd", anchor=W)
+    my_tree_SPL.heading("Rengör", text="Rengör", anchor=W)
+    my_tree_SPL.heading("PARTID", text="PARTID", anchor=W)
+    my_tree_SPL.heading("PR_ID", text="PR_ID", anchor=W)
+    my_tree_SPL.heading("QUANTITY", text="QUANTITY", anchor=W)
+    my_tree_SPL.heading("PL_ID", text="PL_ID", anchor=W)
+    my_tree_SPL.pack(fill='both', expand=True)
+
+    # SPL_label_recieve = ttk.Label(tab4, text="Återlämnad längd: ", font=("Calibri", 14, "bold"))
+    # SPL_label_recieve.grid(row=6, column=0, padx=(10, 0), pady=(0, 2), sticky=W)
+    # SPL_entry_recieve = ttk.Entry(tab4, font=("Calibri", 14))
+    # SPL_entry_recieve.grid(row=7, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
+
+    # var = IntVar(value=0)
+    # var2 = IntVar(value=0)
+    # c1 = ttk.Checkbutton(tab4, text='Återlämna', onvalue=1, offvalue=0, variable=var)
+    # c1.grid(row=6, column=1, padx=(10, 0), pady=(0, 2), sticky=S + W)
+    # # c1.bind('<ButtonRelease-1>', get_state)
+    # c2 = ttk.Checkbutton(tab4, text='Rengör', onvalue=1, offvalue=0, variable=var2)
+    # c2.grid(row=7, column=1, padx=(10, 0), pady=(0, 2), sticky=N + W)
+
+    # UL_label_length = ttk.Label(tab2, text="Längd: ", font=("Calibri", 14, "bold"))
+    # UL_label_length.grid(row=4, column=1, padx=(2, 0), pady=(0, 2), sticky=W)
+    # UL_entry_length = ttk.Entry(tab2, font=("Calibri", 14))
+    # UL_entry_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
+
+    # Entry till ordernummer
+
+    SPL_label_langd_label = ttk.Label(tab4, text="Splitt-längd:", font=("Calibri", 12, "bold"))
+    SPL_label_langd_label.grid(row=7, column=0, padx=(10, 0), pady=1, sticky=W)
+
+    SPL_entry_langd = ttk.Entry(tab4, font=("Calibri", 14))
+    SPL_entry_langd.grid(row=8, column=0, padx=(10, 0), pady=(0, 15), sticky=W)
+    SPL_entry_langd.bind("<Return>", populate_treeview_AL)
+
+    SPL_button_lagg_till = ttk.Button(tab4, text="Lägg till", style="my.TButton", command=update_record_UL)
+    SPL_button_lagg_till.grid(row=9, column=0, padx=(10, 0), pady=(0, 5), ipadx=30, sticky=W)
+
+    SPL_button_edit = ttk.Button(tab4, text="Spltta", style="my.TButton", command=update_record_UL)
+    SPL_button_edit.grid(row=7, column=2, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
+    SPL_button_recieve = ttk.Button(tab4, text="Avbryt", style="my.TButton", command=create_invoice)
+    SPL_button_recieve.grid(row=7, column=3, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
+
+    my_tree_SPL.bind('<ButtonRelease-1>', select_record_AL)
 
 
 
