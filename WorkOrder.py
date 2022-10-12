@@ -20,11 +20,11 @@ from dateutil.relativedelta import *
 from multiprocessing import Queue
 
 # Om vi har trial period!
-trialperiod = '2030-05-20 07:00:00'
+trialperiod = '2022-11-01 07:00:00'
 now = str(datetime.now())
 if now > trialperiod:
     window1 = ThemedTk(theme="blue")
-    window1.geometry("780x715")
+    window1.geometry("930x715")
     window1.title("WorkOrder")
 
     Label_trial = Label(window1,
@@ -3766,6 +3766,8 @@ else:
                 messagebox.showinfo("Info", f'Splitt av serienummer gick ok!')
         except Exception as e:
             messagebox.showerror("Error", f"Issues with updating the record {e}")
+
+            # FÄRDIG
 
 
     def populate_treeview_SPL(events):
