@@ -2202,6 +2202,7 @@ else:
 
                         ef_values_update = Retry7(s)
                         ef_values_update_json = ef_values_update.json()
+                        #KUKENSTÅR
 
                         url_product_record_update_old = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                         json_product_record_old = {
@@ -3200,11 +3201,855 @@ else:
     my_tree_AL.bind('<ButtonRelease-1>', select_record_AL)
 
 
+    def split_serialnumbers():
+        try:
+            serialnumber = str(SPL_entry_ordernumber.get())
+
+            langd = []
+            for u in my_tree_SPL.get_children():
+                children = my_tree_SPL.item(u, "values")
+                langd.append(int(children[0]))
+
+            urllib3.disable_warnings()
+            s = requests.session()
+            url = f"https://{host}/sv/{company}/login"
+            inloggning = \
+                {
+                    "Username": f"{username}",
+                    "Password": f"{password}",
+                    "ForceRelogin": True
+                }
+
+            def Retry1(s, max_tries=40):
+                counter = 0
+                while True:
+                    # s = requests.session()
+                    r = s.post(url=url, json=inloggning, verify=False)
+                    if r.status_code == 200:
+                        return r
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showinfo("Error", f'Not able to login to the API')
+                        break
+                    time.sleep(0.4)
+
+            r = Retry1(s)
+            r_fel = r.json()
+            if r_fel == None or r_fel == "None":
+                messagebox.showerror("Error", f'Not able to login to the API')
+            else:
+                pr_url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=SerialNumber eq '{serialnumber}'"
+
+                def Retry10000(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=pr_url, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                pr_get = Retry10000(s)
+                pr_get_json = pr_get.json()
+                pr_id = int(pr_get_json[0]["Id"])
+                pr_langd = str(pr_get_json[0]["RegistrationNo"])
+                part_id = int(pr_get_json[0]["PartId"])
+
+                SERTILLG = None
+                SERAVSKR = None
+                SERANSKA = None
+                SERRESTV = None
+                SERAVSKREN = None
+                SERAVSTID = None
+                SERKLAR = None
+                SERUTRANG = None
+                SERUTRANGD = None
+                for ef_value in inleverans_ef_sn:
+                    if ef_value == f'{serienummer_tillgangskonto}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error1", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERTILLG = int(ef_result_json[0]["IntegerValue"])
+                    elif ef_value == f'{serienummer_avskrivningskonto}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERAVSKR = int(ef_result_json[0]["IntegerValue"])
+                    elif ef_value == f'{serienummer_anskaffningsvarde}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERANSKA = float(ef_result_json[0]["DecimalValue"])
+                    elif ef_value == f'{serienummer_restvarde}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERRESTV = float(ef_result_json[0]["DecimalValue"])
+                    elif ef_value == f'{serienummer_avskriven}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERAVSKREN = str(ef_result_json[0]["StringValue"])
+                    elif ef_value == f'{serienummer_avskrivningstid}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERAVSTID = int(ef_result_json[0]["IntegerValue"])
+                    elif ef_value == f'{serienummer_klar}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERKLAR = (ef_result_json[0]["DateOnlyValue"])
+                            SERKLAR = str(SERKLAR[0:10])
+                    elif ef_value == f'{serienummer_utrangeratpris}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERUTRANG = float(ef_result_json[0]["DecimalValue"])
+                    elif ef_value == f'{serienummer_utrangeratdatum}':
+                        ef_url = f"https://{host}/sv/{company}/api/v1/Common/ExtraFields?$filter=ParentId eq {pr_id} and Identifier eq '{ef_value}'"
+
+                        def Retry2(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=ef_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error2", f'Error find the extra field')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        ef_result = Retry2(s)
+                        if ef_result.text == [] or ef_result.text == "[]":
+                            pass
+                        else:
+                            ef_result_json = ef_result.json()
+                            SERUTRANGD = (ef_result_json[0]["DateOnlyValue"])
+                            SERUTRANGD = str(SERUTRANGD[0:10])
+
+                for u in my_tree_SPL.get_children():
+                    children = my_tree_SPL.item(u, "values")
+                    new_length = int(children[0])
+
+                    ef_pr = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=StartsWith(SerialNumber, 'SER9')&$orderby=SerialNumber desc&$top=1"
+
+                    def Retry100(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=ef_pr, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showinfo("Error", f'Not able to find the starting product record')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    ef_pr = Retry100(s)
+                    ef_pr_json = ef_pr.json()
+                    next_serial_number_string = ef_pr_json[0]["SerialNumber"]
+                    nextserial = int(next_serial_number_string[3:])
+                    nextserial_final = nextserial + 1
+
+                    WH_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{LS_huvud}'"
+
+                    def RetryWH(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=WH_url, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    WH_Get = RetryWH(s)
+                    WH_Get_json = WH_Get.json()
+                    wh_id = int(WH_Get_json[0]["Id"])
+
+                    invent_pr = f"https://{host}/sv/{company}/api/v1/Inventory/Parts/ReportStockCount"
+                    invent_pr_json = {
+                        "PartId": int(part_id),
+                        "WarehouseId": int(wh_id),
+                        "Name": f"{lagerplats}",
+                        "Balance": 1.0,
+                        "SerialNumber": "SER" + f"{nextserial_final}"
+                    }
+
+                    def RetryInvent(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=invent_pr, json=invent_pr_json, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to update the charge numbers, since the row has been reported arrival, \nplease update the charge numbers manually')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    invent_update = RetryInvent(s)
+                    invent_update_json = invent_update.json()
+
+                    pr_pr = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=SerialNumber eq 'SER{nextserial_final}'"
+
+                    def RetryPRPR(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=pr_pr, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showinfo("Error", f'Not able to find the starting product record')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    pr_pr_get = RetryPRPR(s)
+                    pr_pr_get_json = pr_pr_get.json()
+                    product_new_record_id = int(pr_pr_get_json[0]["Id"])
 
 
 
+                    url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
+                    json_product_record = {
+                        "ProductRecordId": int(product_new_record_id),
+                        "RegistrationNo": {"Value": str(new_length)}
+                    }
+
+                    def RetryZZ(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=url_product_record_update, json=json_product_record, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to update the charge numbers, since the row has been reported arrival, \nplease update the charge numbers manually')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    product_record_update = RetryZZ(s)
+                    product_record_update_json = product_record_update.json()
+
+                    # serienummer_tillgangskonto = parser['logics_EF']['serienummer_tillgangskonto']
+                    # serienummer_avskrivningskonto = parser['logics_EF']['serienummer_avskrivningskonto']
+                    # serienummer_anskaffningsvarde = parser['logics_EF']['serienummer_anskaffningsvarde']
+                    # serienummer_restvarde = parser['logics_EF']['serienummer_restvarde']
+                    # serienummer_avskriven = parser['logics_EF']['serienummer_avskriven']
+                    # serienummer_avskrivningstid = parser['logics_EF']['serienummer_avskrivningstid']
+                    # serienummer_klar = parser['logics_EF']['serienummer_klar']
+                    # serienummer_utrangeratpris = parser['logics_EF']['serienummer_utrangeratpris']
+                    # serienummer_utrangeratdatum = parser['logics_EF']['serienummer_utrangeratdatum']
+                    anskaffningsvarde_ny = round(float(SERANSKA) * float(1 - ((int(pr_langd) - int(new_length)) / int(pr_langd))), 2)
+                    #anskaffningsvarde_gammal = round(float(SERANSKA) * float(1 - ((int(var_uthyrd) - int(var_ater)) / int(var_uthyrd))), 2)
+                    restvarde_ny = round(float(SERRESTV) * float(1 - ((int(pr_langd) - int(new_length)) / int(pr_langd))), 2)
+                    # estvarde_gammal = round(float(SERRESTV) * float(1 - ((int(var_uthyrd) - int(var_ater)) / int(var_uthyrd))), 2)
+
+                    lista_ef_ny_pr = []
+                    for j in inleverans_ef_sn:
+                        date_now = datetime.now().date()
+
+                        if j == serienummer_anskaffningsvarde:
+                            lista_ef_ny_pr.append({"Identifier": serienummer_anskaffningsvarde, "DecimalValue": float(anskaffningsvarde_ny)})
+                        elif j == serienummer_restvarde:
+                            lista_ef_ny_pr.append({"Identifier": serienummer_restvarde, "DecimalValue": float(restvarde_ny)})
+                        elif j == serienummer_avskrivningskonto:
+                            lista_ef_ny_pr.append({"Identifier": serienummer_avskrivningskonto, "IntegerValue": int(SERAVSKR)})
+                        elif j == serienummer_klar:
+                            lista_ef_ny_pr.append({"Identifier": serienummer_klar, "DateOnlyValue": f"{str(SERKLAR)}"})
+                        elif j == serienummer_avskrivningstid:
+                            lista_ef_ny_pr.append({"Identifier": serienummer_avskrivningstid, "IntegerValue": int(SERAVSTID)})
+                        elif j == serienummer_tillgangskonto:
+                            lista_ef_ny_pr.append({"Identifier": serienummer_tillgangskonto, "IntegerValue": int(SERTILLG)})
+
+                    url_ef_value_sn = f"https://{host}/sv/{company}/api/v1/Common/Commands/SetExtraFieldValues"
+                    json_ef_values = {
+                        "EntityId": int(product_new_record_id),
+                        "EntityType": 0,
+                        "Values": lista_ef_ny_pr
+                    }
+
+                    def Retry7(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.post(url=url_ef_value_sn, json=json_ef_values, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Was not able to set extra field values on product record id {product_new_record_id}')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    ef_values_update = Retry7(s)
+                    ef_values_update_json = ef_values_update.json()
+                summa_langd_str = str(sum(langd))
+                total_langd = int(summa_langd_str)
+
+                anskaffningsvarde_gammal = round(float(SERANSKA) * float((int(pr_langd) - float(total_langd)) / int(pr_langd)), 2)
+                #restvarde_ny = round(float(SERRESTV) * float(1 - ((int(pr_langd) - int(new_length)) / int(pr_langd))), 2)
+                restvarde_gammal = round(float(SERRESTV) * (float((int(pr_langd) - float(total_langd)) / int(pr_langd))), 2)
+
+                lista_ef_ny_pr_1 = []
+                for j in inleverans_ef_sn:
+                    date_now = datetime.now().date()
+
+                    if j == serienummer_anskaffningsvarde:
+                        lista_ef_ny_pr_1.append({"Identifier": serienummer_anskaffningsvarde, "DecimalValue": float(anskaffningsvarde_gammal)})
+                    elif j == serienummer_restvarde:
+                        lista_ef_ny_pr_1.append({"Identifier": serienummer_restvarde, "DecimalValue": float(restvarde_gammal)})
+                    elif j == serienummer_avskrivningskonto:
+                        lista_ef_ny_pr_1.append({"Identifier": serienummer_avskrivningskonto, "IntegerValue": int(SERAVSKR)})
+                    elif j == serienummer_klar:
+                        lista_ef_ny_pr_1.append({"Identifier": serienummer_klar, "DateOnlyValue": f"{str(SERKLAR)}"})
+                    elif j == serienummer_avskrivningstid:
+                        lista_ef_ny_pr_1.append({"Identifier": serienummer_avskrivningstid, "IntegerValue": int(SERAVSTID)})
+                    elif j == serienummer_tillgangskonto:
+                        lista_ef_ny_pr_1.append({"Identifier": serienummer_tillgangskonto, "IntegerValue": int(SERTILLG)})
+                url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
+                json_product_record = {
+                    "ProductRecordId": int(pr_id),
+                    "RegistrationNo": {"Value": f"{int(int(pr_langd)-float(total_langd))}"}
+                }
+                def RetryZZ(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.post(url=url_product_record_update, json=json_product_record, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Not able to update the charge numbers, since the row has been reported arrival, \nplease update the charge numbers manually')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                product_record_update = RetryZZ(s)
+                product_record_update_json = product_record_update.json()
+
+                url_ef_value_sn = f"https://{host}/sv/{company}/api/v1/Common/Commands/SetExtraFieldValues"
+                json_ef_values = {
+                    "EntityId": int(pr_id),
+                    "EntityType": 0,
+                    "Values": lista_ef_ny_pr_1
+                }
+
+                def Retry7(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.post(url=url_ef_value_sn, json=json_ef_values, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Was not able to set extra field values on product record id {product_new_record_id}')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                ef_values_update = Retry7(s)
+                ef_values_update_json = ef_values_update.json()
+
+                for u in my_tree_SPL.get_children():
+                    my_tree_SPL.delete(u)
+                SPL_entry_ordernumber.delete(0, END)
+                SPL_entry_langd.delete(0, END)
+                SPL_entry_ordernumber.focus_set()
+                SPL_label_langd_input["text"] = ""
+                SPL_label_aterstaende_input["text"] = ""
+                messagebox.showinfo("Info", f'Splitt av serienummer gick ok!')
+        except Exception as e:
+            messagebox.showerror("Error", f"Issues with updating the record {e}")
 
 
+    def populate_treeview_SPL(events):
+        try:
+            for u in my_tree_SPL.get_children():
+                my_tree_SPL.delete(u)
+            ordernumber = str(SPL_entry_ordernumber.get())
+            urllib3.disable_warnings()
+            s = requests.session()
+            url = f"https://{host}/sv/{company}/login"
+            inloggning = \
+                {
+                    "Username": f"{username}",
+                    "Password": f"{password}",
+                    "ForceRelogin": True
+                }
+
+            def Retry1(s, max_tries=40):
+                counter = 0
+                while True:
+                    # s = requests.session()
+                    r = s.post(url=url, json=inloggning, verify=False)
+                    if r.status_code == 200:
+                        return r
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to login to the API')
+                        break
+                    time.sleep(0.4)
+
+            r = Retry1(s)
+            r_fel = r.json()
+            if r_fel == None or r_fel == "None":
+                messagebox.showerror("Error", f'Not able to login to the API')
+            else:
+
+
+                wh_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{LS_huvud}'"
+
+                def Retry2(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=wh_url, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                wh_get = Retry2(s)
+                wh_get_json = wh_get.json()
+                if wh_get_json == []:
+                    messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                else:
+                    # wh_id = int(wh_get_json[0]["Id"])
+                    #
+                    # pl_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=WarehouseId eq {wh_id} and Name eq '{ordernumber}' and LifeCycleState eq 10 and Balance gt 0&$expand=PartLocationProductRecords"
+                    #
+                    # def Retry900(s, max_tries=40):
+                    #     counter = 0
+                    #     while True:
+                    #         reportResulst = s.get(url=pl_url, verify=False)
+                    #         if reportResulst.status_code == 200:
+                    #             return reportResulst
+                    #
+                    #         counter += 1
+                    #         if counter == max_tries:
+                    #             messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
+                    #             break
+                    #
+                    #         if reportResulst.status_code != 200:
+                    #             r = Retry1(s)
+                    #         time.sleep(0.4)
+                    #
+                    # pl_get = Retry900(s)
+                    # if pl_get == []:
+                    #     messagebox.showerror("Error", f'Did not find any rows for the specific project')
+                    # else:
+                    # pl_get_json = pl_get.json()
+                    # for pr_bals in pl_get_json:
+                    #     for iora in pr_bals["PartLocationProductRecords"]:
+                    #         if iora["Quantity"] > 0:
+                                #print(iora)
+                    pr_url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=SerialNumber eq '{str(SPL_entry_ordernumber.get())}'"
+
+                    def Retry10000(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=pr_url, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    pr_get = Retry10000(s)
+                    pr_get_json = pr_get.json()
+                    part_id = str(pr_get_json[0]["RegistrationNo"])
+                    # part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
+                    #
+                    # def Retry10001(s, max_tries=40):
+                    #     counter = 0
+                    #     while True:
+                    #         reportResulst = s.get(url=part_url, verify=False)
+                    #         if reportResulst.status_code == 200:
+                    #             return reportResulst
+                    #
+                    #         counter += 1
+                    #         if counter == max_tries:
+                    #             messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                    #             break
+                    #
+                    #         if reportResulst.status_code != 200:
+                    #             r = Retry1(s)
+                    #         time.sleep(0.4)
+                    #
+                    # part_get = Retry10001(s)
+                    # part_get_json = part_get.json()
+
+                    #my_tree_SPL.insert('', 'end', values=(part_id))
+                    SPL_label_langd_input["text"] = part_id
+                    SPL_label_aterstaende_input["text"] = part_id
+                    SPL_entry_langd.focus_set()
+        except Exception as e:
+            messagebox.showerror("Error", f"Issues with updating the labels {e}")
+
+    def populate_treeview_SPL_real_pop():
+        try:
+            langd = str(SPL_entry_langd.get())
+            ordernumber = str(SPL_entry_ordernumber.get())
+            urllib3.disable_warnings()
+            s = requests.session()
+            url = f"https://{host}/sv/{company}/login"
+            inloggning = \
+                {
+                    "Username": f"{username}",
+                    "Password": f"{password}",
+                    "ForceRelogin": True
+                }
+
+            def Retry1(s, max_tries=40):
+                counter = 0
+                while True:
+                    # s = requests.session()
+                    r = s.post(url=url, json=inloggning, verify=False)
+                    if r.status_code == 200:
+                        return r
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to login to the API')
+                        break
+                    time.sleep(0.4)
+
+            r = Retry1(s)
+            r_fel = r.json()
+            part_id = 0
+            if r_fel == None or r_fel == "None":
+                messagebox.showerror("Error", f'Not able to login to the API')
+            else:
+
+                wh_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{LS_huvud}'"
+
+                def Retry2(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=wh_url, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                wh_get = Retry2(s)
+                wh_get_json = wh_get.json()
+                if wh_get_json == []:
+                    messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                else:
+                    # wh_id = int(wh_get_json[0]["Id"])
+                    #
+                    # pl_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=WarehouseId eq {wh_id} and Name eq '{ordernumber}' and LifeCycleState eq 10 and Balance gt 0&$expand=PartLocationProductRecords"
+                    #
+                    # def Retry900(s, max_tries=40):
+                    #     counter = 0
+                    #     while True:
+                    #         reportResulst = s.get(url=pl_url, verify=False)
+                    #         if reportResulst.status_code == 200:
+                    #             return reportResulst
+                    #
+                    #         counter += 1
+                    #         if counter == max_tries:
+                    #             messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
+                    #             break
+                    #
+                    #         if reportResulst.status_code != 200:
+                    #             r = Retry1(s)
+                    #         time.sleep(0.4)
+                    #
+                    # pl_get = Retry900(s)
+                    # if pl_get == []:
+                    #     messagebox.showerror("Error", f'Did not find any rows for the specific project')
+                    # else:
+                    # pl_get_json = pl_get.json()
+                    # for pr_bals in pl_get_json:
+                    #     for iora in pr_bals["PartLocationProductRecords"]:
+                    #         if iora["Quantity"] > 0:
+                    # print(iora)
+                    pr_url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=SerialNumber eq '{str(SPL_entry_ordernumber.get())}'"
+
+                    def Retry10000(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=pr_url, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    pr_get = Retry10000(s)
+                    pr_get_json = pr_get.json()
+                    part_id = str(pr_get_json[0]["RegistrationNo"])
+                    # part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
+                    #
+                    # def Retry10001(s, max_tries=40):
+                    #     counter = 0
+                    #     while True:
+                    #         reportResulst = s.get(url=part_url, verify=False)
+                    #         if reportResulst.status_code == 200:
+                    #             return reportResulst
+                    #
+                    #         counter += 1
+                    #         if counter == max_tries:
+                    #             messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                    #             break
+                    #
+                    #         if reportResulst.status_code != 200:
+                    #             r = Retry1(s)
+                    #         time.sleep(0.4)
+                    #
+                    # part_get = Retry10001(s)
+                    # part_get_json = part_get.json()
+
+                    # my_tree_SPL.insert('', 'end', values=(part_id))
+                    SPL_label_langd_input["text"] = part_id
+
+
+            my_tree_SPL.insert('', 'end', values=(langd))
+            langd_tot = []
+            for u in my_tree_SPL.get_children():
+                children = my_tree_SPL.item(u, "values")
+                langd_tot.append(int(children[0]))
+
+            summan_av = int(sum(langd_tot))
+            aterstaende = int(part_id)-summan_av
+            SPL_label_aterstaende_input["text"] = aterstaende
+            SPL_entry_langd.delete(0, END)
+            SPL_entry_langd.focus_set()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Issues with populating the treeview {e}")
     # TAB 4 Design!
 
     SPL_label_rutin = ttk.Label(tab4, text="Split av serienummer", font=("Calibri", 18, "bold"))
@@ -3217,7 +4062,7 @@ else:
     # Entry till ordernummer
     SPL_entry_ordernumber = ttk.Entry(tab4, font=("Calibri", 14))
     SPL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 20), sticky=W)
-    SPL_entry_ordernumber.bind("<Return>", populate_treeview_AL)
+    SPL_entry_ordernumber.bind("<Return>", populate_treeview_SPL)
 
     # Label till ordernummer i rapportera inleverans
     SPL_label_langd = ttk.Label(tab4, text="Längd: ", font=("Calibri", 12, "bold"))
@@ -3226,10 +4071,10 @@ else:
     SPL_label_aterstaende = ttk.Label(tab4, text="Återstående längd: ", font=("Calibri", 12, "bold"))
     SPL_label_aterstaende.grid(row=4, column=0, padx=(10, 0), pady=(0,20), sticky=W)
 
-    SPL_label_langd_input = ttk.Label(tab4, text="20000", font=("Calibri", 12, "bold"))
+    SPL_label_langd_input = ttk.Label(tab4, text="           ", font=("Calibri", 12, "bold"), width=20)
     SPL_label_langd_input.grid(row=3, column=1, padx=(2, 0), pady=1, sticky=W)
 
-    SPL_label_aterstaende_input = ttk.Label(tab4, text="10000", font=("Calibri", 12, "bold"))
+    SPL_label_aterstaende_input = ttk.Label(tab4, text="          ", font=("Calibri", 12, "bold"), width=20)
     SPL_label_aterstaende_input.grid(row=4, column=1, padx=(2, 0), pady=(0, 20), sticky=W)
 
     # Skal till TreeView för att hämta information från plocklista
@@ -3271,25 +4116,7 @@ else:
     my_tree_SPL.heading("PL_ID", text="PL_ID", anchor=W)
     my_tree_SPL.pack(fill='both', expand=True)
 
-    # SPL_label_recieve = ttk.Label(tab4, text="Återlämnad längd: ", font=("Calibri", 14, "bold"))
-    # SPL_label_recieve.grid(row=6, column=0, padx=(10, 0), pady=(0, 2), sticky=W)
-    # SPL_entry_recieve = ttk.Entry(tab4, font=("Calibri", 14))
-    # SPL_entry_recieve.grid(row=7, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
 
-    # var = IntVar(value=0)
-    # var2 = IntVar(value=0)
-    # c1 = ttk.Checkbutton(tab4, text='Återlämna', onvalue=1, offvalue=0, variable=var)
-    # c1.grid(row=6, column=1, padx=(10, 0), pady=(0, 2), sticky=S + W)
-    # # c1.bind('<ButtonRelease-1>', get_state)
-    # c2 = ttk.Checkbutton(tab4, text='Rengör', onvalue=1, offvalue=0, variable=var2)
-    # c2.grid(row=7, column=1, padx=(10, 0), pady=(0, 2), sticky=N + W)
-
-    # UL_label_length = ttk.Label(tab2, text="Längd: ", font=("Calibri", 14, "bold"))
-    # UL_label_length.grid(row=4, column=1, padx=(2, 0), pady=(0, 2), sticky=W)
-    # UL_entry_length = ttk.Entry(tab2, font=("Calibri", 14))
-    # UL_entry_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
-
-    # Entry till ordernummer
 
     SPL_label_langd_label = ttk.Label(tab4, text="Splitt-längd:", font=("Calibri", 12, "bold"))
     SPL_label_langd_label.grid(row=7, column=0, padx=(10, 0), pady=1, sticky=W)
@@ -3298,10 +4125,10 @@ else:
     SPL_entry_langd.grid(row=8, column=0, padx=(10, 0), pady=(0, 15), sticky=W)
     SPL_entry_langd.bind("<Return>", populate_treeview_AL)
 
-    SPL_button_lagg_till = ttk.Button(tab4, text="Lägg till", style="my.TButton", command=update_record_UL)
+    SPL_button_lagg_till = ttk.Button(tab4, text="Lägg till", style="my.TButton", command=populate_treeview_SPL_real_pop)
     SPL_button_lagg_till.grid(row=9, column=0, padx=(10, 0), pady=(0, 5), ipadx=30, sticky=W)
 
-    SPL_button_edit = ttk.Button(tab4, text="Spltta", style="my.TButton", command=update_record_UL)
+    SPL_button_edit = ttk.Button(tab4, text="Spltta", style="my.TButton", command=split_serialnumbers)
     SPL_button_edit.grid(row=7, column=2, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
     SPL_button_recieve = ttk.Button(tab4, text="Avbryt", style="my.TButton", command=create_invoice)
     SPL_button_recieve.grid(row=7, column=3, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
@@ -3312,45 +4139,6 @@ else:
 
 
 
-    # Skal till TreeView för att hämta information från om lagerplats
-    # my_tree_lp123 = ttk.Treeview(tab5, columns=(
-    # "Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr", "PL_ID", "PR_ID", "PART_ID", "GS1_CODE",
-    # "Lagerplats", "EF_VALUE"), displaycolumns=("Artikelnummer", "Benämning", "Restkvantitet", "Lagerplats"))
-    # my_tree_lp123.column("#0", width=0, stretch=NO)
-    # my_tree_lp123.column("Artikelnummer", anchor=W, width=90)
-    # my_tree_lp123.column("Benämning", anchor=W, width=150)
-    # my_tree_lp123.column("Restkvantitet", anchor=W, width=60)
-    # my_tree_lp123.column("Batch/Serienr", anchor=W, width=60)
-    # my_tree_lp123.column("PL_ID", anchor=W, width=60)
-    # my_tree_lp123.column("PR_ID", anchor=W, width=60)
-    # my_tree_lp123.column("PART_ID", anchor=W, width=60)
-    # my_tree_lp123.column("GS1_CODE", anchor=W, width=60)
-    # my_tree_lp123.column("Lagerplats", anchor=W, width=60)
-    # my_tree_lp123.column("EF_VALUE", anchor=W, width=60)
-    #
-    # my_tree_lp123.heading("#0", text="", anchor=W)
-    # my_tree_lp123.heading("Artikelnummer", text="PartNo", anchor=W)
-    # my_tree_lp123.heading("Benämning", text="Description", anchor=W)
-    # my_tree_lp123.heading("Restkvantitet", text="Quantity", anchor=W)
-    # my_tree_lp123.heading("Batch/Serienr", text="Batch or SN", anchor=W)
-    # my_tree_lp123.heading("PL_ID", text="PartLocationId", anchor=W)
-    # my_tree_lp123.heading("PR_ID", text="ProductRecordId", anchor=W)
-    # my_tree_lp123.heading("PART_ID", text="ProductRecordId", anchor=W)
-    # my_tree_lp123.heading("GS1_CODE", text="GS1_CODE", anchor=W)
-    # my_tree_lp123.heading("Lagerplats", text="Lagerplats", anchor=W)
-    # my_tree_lp123.heading("EF_VALUE", text="EF_VALUE", anchor=W)
-    #
-    # my_tree_lp123.grid(row=4, column=1, padx=(0, 2), sticky=W)
-    #
-    #
-    #
-    #
-    # canvas3 = Canvas(dev_plan, width=200, height=80, background='white')
-    # canvas3.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=1, pady=10)
-    #
-    # canvas_lp_1 = Canvas(tab2, width=900, height=80, background='white')
-    # canvas_lp_1.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=10, pady=10)
-
     # Style för TreeView
     style = ttk.Style()
     style.configure("TButton", padding=10, relief="flat", background="white", foreground="black", anchor="center")
@@ -3359,167 +4147,6 @@ else:
     style.configure("Treeview", foreground='black', rowheight=25)
     style.configure("Treeview.Heading", foreground='black', font=('Helvetica', 12, "bold"))
 
-    # Skal till TreeView för att hämta information från om lagerplats
-    # tree_frame = Frame(tab2)
-    # tree_frame.grid(row=4, column=1, ipady=80, ipadx=180, padx=10, sticky=W)
-    # tree_scroll = ttk.Scrollbar(tree_frame)
-    # tree_scroll.pack(side=RIGHT, fill=Y)
-    # my_tree_lp = ttk.Treeview(tree_frame, style="Custom.Treeview", yscrollcommand=tree_scroll.set, columns=("Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr", "PL_ID", "PR_ID", "PART_ID", "GS1_CODE", "EF_VALUE"), displaycolumns=("Artikelnummer", "Benämning", "Restkvantitet", "Batch/Serienr"))
-    # tree_scroll.config(command=my_tree_lp.yview)
-    # # my_tree_lp['columns'] = ("Artikelnummer", "Benämning", "Restkvantitet", "Batchnummer", "Serienummer", "Test")
-    # my_tree_lp.column("#0", anchor=W, width=1, minwidth=1, stretch=0)
-    # my_tree_lp.column("Artikelnummer", anchor=W, width=80)
-    # my_tree_lp.column("Benämning", anchor=W, width=150)
-    # my_tree_lp.column("Restkvantitet", anchor=W, width=80)
-    # my_tree_lp.column("Batch/Serienr", anchor=W, width=60)
-    # my_tree_lp.column("PL_ID", anchor=W, width=60)
-    # my_tree_lp.column("PR_ID", anchor=W, width=60)
-    # my_tree_lp.column("PART_ID", anchor=W, width=60)
-    # my_tree_lp.column("GS1_CODE", anchor=W, width=60)
-    # my_tree_lp.column("EF_VALUE", anchor=W, width=60)
-    #
-    # my_tree_lp.heading("#0", text="", anchor=W)
-    # my_tree_lp.heading("Artikelnummer", text="PartNo", anchor=W)
-    # my_tree_lp.heading("Benämning", text="Description", anchor=W)
-    # my_tree_lp.heading("Restkvantitet", text="Quantity", anchor=W)
-    # my_tree_lp.heading("Batch/Serienr", text="Batch or SN", anchor=W)
-    # my_tree_lp.heading("PL_ID", text="PartLocationId", anchor=W)
-    # my_tree_lp.heading("PR_ID", text="ProductRecordId", anchor=W)
-    # my_tree_lp.heading("PART_ID", text="ProductRecordId", anchor=W)
-    # my_tree_lp.heading("GS1_CODE", text="GS1_CODE", anchor=W)
-    # my_tree_lp.heading("EF_VALUE", text="EF_VALUE", anchor=W)
-    # my_tree_lp.pack(fill='both', expand=True)
-    # my_tree_lp.grid(row=4, column=1, ipady=80, ipadx=180, padx=10, sticky=W)
 
-    # # Skal till TreeView för att hämta information från plocklista
-    # tree_frame_plock1 = Frame(tab1)
-    # tree_frame_plock1.grid(row=4, column=1, ipady=5, padx=4, sticky=W)
-    # tree_scroll_plock1 = ttk.Scrollbar(tree_frame_plock1)
-    # tree_scroll_plock1.pack(side=RIGHT, fill=Y)
-    # my_tree = ttk.Treeview(tree_frame_plock1, style="Custom.Treeview", yscrollcommand=tree_scroll_plock1.set)
-    # my_tree.tag_configure("Test", background="lightgrey", font=('Helvetica', 12, "italic"))
-    # my_tree.tag_configure("Test1", background="white")
-    # tree_scroll_plock1.config(command=my_tree.yview)
-    # my_tree['columns'] = ("Artikelnummer", "Benämning", "Restkvantitet", "Lagerplats", "Spårbarhet")
-    # my_tree['displaycolumns'] = ("Artikelnummer", "Benämning", "Restkvantitet", "Lagerplats")
-    # my_tree.column("#0", width=1, minwidth=1, stretch=0)
-    # my_tree.column("Artikelnummer", anchor=W, width=140)
-    # my_tree.column("Benämning", anchor=W, width=220)
-    # my_tree.column("Restkvantitet", anchor=W, width=70)
-    # my_tree.column("Lagerplats", anchor=W, width=90)
-    # my_tree.column("Spårbarhet", anchor=W, width=70)
-    #
-    # my_tree.heading("#0", text="", anchor=W)
-    # my_tree.heading("Artikelnummer", text="PartNo", anchor=W)
-    # my_tree.heading("Benämning", text="Description", anchor=W)
-    # my_tree.heading("Restkvantitet", text="RestQ", anchor=W)
-    # my_tree.heading("Lagerplats", text="Location", anchor=W)
-    # my_tree.heading("Spårbarhet", text="Trac.", anchor=W)
-    # my_tree.pack(fill='both', expand=True)
-    # # my_tree.grid(row=4, column=1, ipady=5, padx=4, sticky=W)
-    #
-    # # Skal till TreeView för att hämta information om redan plockad kvantitet
-    # tree_frame_plock2 = Frame(tab1)
-    # tree_frame_plock2.grid(row=5, column=1, ipady=5, padx=4, sticky=W)
-    # tree_scroll_plock2 = ttk.Scrollbar(tree_frame_plock2)
-    # tree_scroll_plock2.pack(side=RIGHT, fill=Y)
-    # my_tree1 = ttk.Treeview(tree_frame_plock2, style="Custom.Treeview",yscrollcommand=tree_scroll_plock2.set)
-    # tree_scroll_plock2.config(command=my_tree1.yview)
-    # # my_tree1 = ttk.Treeview(tab1)
-    # my_tree1['columns'] = ("Artikelnummer", "Benämning", "Plockad kvantitet", "Lagerplats", "Spårbarhet")
-    # my_tree1['displaycolumns'] = ("Artikelnummer", "Benämning", "Plockad kvantitet", "Lagerplats")
-    # my_tree1.column("#0", width=1, minwidth=1, stretch=0)
-    # my_tree1.column("Artikelnummer", anchor=W, width=140)
-    # my_tree1.column("Benämning", anchor=W, width=220)
-    # my_tree1.column("Plockad kvantitet", anchor=W, width=70)
-    # my_tree1.column("Lagerplats", anchor=W, width=90)
-    # my_tree1.column("Spårbarhet", anchor=W, width=70)
-    #
-    # my_tree1.heading("#0", text="", anchor=W)
-    # my_tree1.heading("Artikelnummer", text="PartNo", anchor=W)
-    # my_tree1.heading("Benämning", text="Description", anchor=W)
-    # my_tree1.heading("Plockad kvantitet", text="PickedQ", anchor=W)
-    # my_tree1.heading("Lagerplats", text="Location", anchor=W)
-    # my_tree1.heading("Spårbarhet", text="Trac.", anchor=W)
-    # my_tree1.pack(fill='both', expand=True)
-    # # my_tree1.grid(row=5, column=1, ipady=5, padx=4, sticky=W)
-
-    # Skal till TreeView delivery planning
-    # my_tree_dev_plan = ttk.Treeview(dev_plan, style="Custom.Treeview",)
-    # my_tree_dev_plan['columns'] = ("Nr", "Namn", "Datum", "Vikt", "Volym", "Artiklar", "Rader", "Person", "Status")
-    # my_tree_dev_plan.column("#0", width=1, minwidth=1)
-    # my_tree_dev_plan.column("Nr", anchor=W, width=40)
-    # my_tree_dev_plan.column("Namn", anchor=W, width=165)
-    # my_tree_dev_plan.column("Datum", anchor=W, width=120)
-    # my_tree_dev_plan.column("Vikt", anchor=W, width=60)
-    # my_tree_dev_plan.column("Volym", anchor=W, width=80)
-    # my_tree_dev_plan.column("Artiklar", anchor=W, width=60)
-    # my_tree_dev_plan.column("Rader", anchor=W, width=60)
-    # my_tree_dev_plan.column("Person", anchor=W, width=80)
-    # my_tree_dev_plan.column("Status", anchor=W, width=70)
-    #
-    # my_tree_dev_plan.heading("#0", text="", anchor=W)
-    # my_tree_dev_plan.heading("Nr", text="PL", anchor=W)
-    # my_tree_dev_plan.heading("Namn", text="Cu. Name", anchor=W)
-    # my_tree_dev_plan.heading("Datum", text="Date", anchor=W)
-    # my_tree_dev_plan.heading("Vikt", text="Weight", anchor=W)
-    # my_tree_dev_plan.heading("Volym", text="Volume", anchor=W)
-    # my_tree_dev_plan.heading("Artiklar", text="Parts", anchor=W)
-    # my_tree_dev_plan.heading("Rader", text="Rows", anchor=W)
-    # my_tree_dev_plan.heading("Person", text="Picker", anchor=W)
-    # my_tree_dev_plan.heading("Status", text="Status", anchor=W)
-    # my_tree_dev_plan.grid(row=5, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
-
-    # tree_frame_plock2 = Frame(tab1)
-    # tree_frame_plock2.grid(row=5, column=1, ipady=5, padx=4, sticky=W)
-    # tree_scroll_plock2 = Scrollbar(tree_frame_plock2)
-    # tree_scroll_plock2.pack(side=RIGHT, fill=Y)
-    # my_tree1 = ttk.Treeview(tree_frame_plock2, yscrollcommand=tree_scroll_plock2.set)
-    # tree_scroll_plock2.config(command=my_tree1.yview)
-
-    # my_tree_lagerplats_frame = Frame(tab4)
-    # my_tree_lagerplats_frame.grid(row=10, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
-    # tree_scroll_lagerplats = ttk.Scrollbar(my_tree_lagerplats_frame)
-    # tree_scroll_lagerplats.pack(side=RIGHT, fill=Y)
-    # my_tree_lagerplats = ttk.Treeview(my_tree_lagerplats_frame, style="Custom.Treeview",yscrollcommand=tree_scroll_lagerplats.set)  # , columns=("Lagerinfo", "Saldo"), displaycolumns=("Lagerinfo", "Saldo"))
-    # tree_scroll_lagerplats.config(command=my_tree_lagerplats.yview)
-    # Skal till TreeView lagerplats
-    # my_tree_lagerplats = ttk.Treeview(tab4)
-    # my_tree_lagerplats['columns'] = ("Lagerinfo", "Saldo")
-    # my_tree_lagerplats.column("#0", width=1, minwidth=1, stretch=0)
-    # my_tree_lagerplats.column("Lagerinfo", anchor=W, width=200)
-    # my_tree_lagerplats.column("Saldo", anchor=W, width=180)
-    # # my_tree_lagerplats.column("Datum", anchor=W, width=100)
-    # # my_tree_lagerplats.column("Vikt", anchor=W, width=50)
-    # # my_tree_lagerplats.column("Volym", anchor=W, width=80)
-    # # my_tree_lagerplats.column("Artiklar", anchor=W, width=80)
-    # # my_tree_lagerplats.column("Rader", anchor=W, width=60)
-    # # my_tree_lagerplats.column("Person", anchor=W, width=80)
-    # # my_tree_lagerplats.column("Status", anchor=W, width=65)
-    #
-    # my_tree_lagerplats.heading("#0", text="", anchor=W)
-    # my_tree_lagerplats.heading("Lagerinfo", text="Stock info", anchor=W)
-    # my_tree_lagerplats.heading("Saldo", text="Quantity", anchor=W)
-    # # my_tree_lagerplats.heading("Datum", text="Datum", anchor=W)
-    # # my_tree_lagerplats.heading("Vikt", text="Vikt", anchor=W)
-    # # my_tree_lagerplats.heading("Volym", text="Volym", anchor=W)
-    # # my_tree_lagerplats.heading("Artiklar", text="Artiklar", anchor=W)
-    # # my_tree_lagerplats.heading("Rader", text="Rader", anchor=W)
-    # # my_tree_lagerplats.heading("Person", text="Plockare", anchor=W)
-    # # my_tree_lagerplats.heading("Status", text="Status", anchor=W)
-    # # my_tree_lagerplats.grid(row=10, column=1, ipady=3, padx=10, sticky=W, columnspan=3)
-    #
-    #
-    #
-    # # Entry till torder
-    #
-    # # Label till info
-    # Label_torder_info = Label(tab4, text=f"                                                                                                                                 \n"
-    #                                      f"                                                                                                                                 ", font=("Calibri", 14), bg="White")
-    # Label_torder_info.grid(row=8, column=1, pady=20, padx=10, columnspan=1, sticky=S)
-    #
-    # # Label till info
-    # Label_torder_info1 = Label(tab4, text=f"                           ", font=("Calibri", 20), bg="White")
-    # Label_torder_info1.grid(row=9, column=1, pady=20, padx=10, columnspan=1, sticky=W + E)
 
     window.mainloop()
