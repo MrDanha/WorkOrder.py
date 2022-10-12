@@ -8,14 +8,10 @@ from configparser import ConfigParser
 from datetime import datetime
 from tkinter import *
 from tkinter import messagebox
-from tkinter import simpledialog
 from tkinter import ttk
-from urllib.parse import quote
-import pyodbc
 import requests
 import urllib3
 from ttkthemes import ThemedTk
-from ttkwidgets import CheckboxTreeview
 from dateutil.relativedelta import *
 from multiprocessing import Queue
 

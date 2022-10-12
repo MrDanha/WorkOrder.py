@@ -2,7 +2,7 @@ import sys
 from cx_Freeze import setup, Executable
 
 company_name = "Monitor ERP System AB"
-product_name = "WorkOrder_BETA_reportarrival"
+product_name = "WorkOrder_BETA"
 
 
 
@@ -26,7 +26,7 @@ base=base, icon="delivery.ico"
 )
 
 setup(name=product_name,
-version="1.0.1",
+version="1.0.3",
 description="WorkOrder_BETA_reportarrival",
 executables=[exe],
 options={"bdist_msi": bdist_msi_options,
