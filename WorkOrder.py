@@ -547,7 +547,7 @@ else:
                     url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                     json_product_record = {
                                           "ProductRecordId": int(i),
-                                          "RegistrationNo": {"Value": str(q)}
+                                          "ChargeNumber": {"Value": str(q)}
                                                             }
 
                     def Retry6(s, max_tries=40):
@@ -818,7 +818,7 @@ else:
                             else:
                                 try:
                                     length = int(i["AlternatePreparationCode"])
-                                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(part_id)} and RegistrationNo eq '{length}'"
+                                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(part_id)} and ChargeNumber eq '{length}'"
 
                                     def Retry200(s, max_tries=40):
                                         counter = 0
@@ -970,7 +970,7 @@ else:
                 if int_Q <= 0:
                     pass
                 else:
-                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(partid)} and RegistrationNo eq '{langd}'&$orderby=ActualArrivalDate desc"
+                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(partid)} and ChargeNumber eq '{langd}'&$orderby=ActualArrivalDate desc"
 
                     def Retry200(s, max_tries=40):
                         counter = 0
@@ -1380,7 +1380,7 @@ else:
                                     part_get = Retry10001(s)
                                     part_get_json = part_get.json()
 
-                                    my_tree_AL.insert('', 'end', values=(0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["RegistrationNo"], pr_get_json[0]["RegistrationNo"], 1, part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"]))
+                                    my_tree_AL.insert('', 'end', values=(0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"]))
 
 
 
@@ -2116,7 +2116,7 @@ else:
                         url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                         json_product_record = {
                             "ProductRecordId": int(product_new_record_id),
-                            "RegistrationNo": {"Value": str(int(var_uthyrd)-int(var_ater))}
+                            "ChargeNumber": {"Value": str(int(var_uthyrd)-int(var_ater))}
                         }
 
                         def RetryZZ(s, max_tries=40):
@@ -2203,7 +2203,7 @@ else:
                         url_product_record_update_old = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                         json_product_record_old = {
                             "ProductRecordId": int(product_old_record_id),
-                            "RegistrationNo": {"Value": str(int(var_uthyrd)-(int(var_uthyrd) - int(var_ater)))}
+                            "ChargeNumber": {"Value": str(int(var_uthyrd)-(int(var_uthyrd) - int(var_ater)))}
                         }
 
                         def Retry_old_pr(s, max_tries=40):
@@ -2486,7 +2486,7 @@ else:
                         # url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                         # json_product_record = {
                         #     "ProductRecordId": int(product_new_record_id),
-                        #     "RegistrationNo": {"Value": str(int(var_uthyrd) - int(var_ater))}
+                        #     "ChargeNumber": {"Value": str(int(var_uthyrd) - int(var_ater))}
                         # }
                         #
                         # def RetryZZ(s, max_tries=40):
@@ -2571,7 +2571,7 @@ else:
                         # url_product_record_update_old = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                         # json_product_record_old = {
                         #     "ProductRecordId": int(product_old_record_id),
-                        #     "RegistrationNo": {"Value": str(int(var_uthyrd) - (int(var_uthyrd) - int(var_ater)))}
+                        #     "ChargeNumber": {"Value": str(int(var_uthyrd) - (int(var_uthyrd) - int(var_ater)))}
                         # }
                         #
                         # def Retry_old_pr(s, max_tries=40):
@@ -2907,7 +2907,7 @@ else:
             #     if int_Q <= 0:
             #         pass
             #     else:
-            #         serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(partid)} and RegistrationNo eq '{langd}'&$orderby=ActualArrivalDate desc"
+            #         serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(partid)} and ChargeNumber eq '{langd}'&$orderby=ActualArrivalDate desc"
             #
             #         def Retry200(s, max_tries=40):
             #             counter = 0
@@ -3110,12 +3110,12 @@ else:
             #                         else:
             #                             pass
 
-        messagebox.showinfo("Info", "Utleveransen gick ok!")
+        messagebox.showinfo("Info", "Återlämningen gick ok!")
         for u in my_tree_ul.get_children():
             my_tree_ul.delete(u)
-        UL_entry_ordernumber.delete(0, END)
-        UL_entry_recieve.delete(0, END)
-        UL_entry_ordernumber.focus_set()
+        AL_entry_ordernumber.delete(0, END)
+        AL_entry_recieve.delete(0, END)
+        AL_entry_ordernumber.focus_set()
 
         # Uppdatera extra fälten på serienummer härnäst
 
@@ -3255,7 +3255,7 @@ else:
                 pr_get = Retry10000(s)
                 pr_get_json = pr_get.json()
                 pr_id = int(pr_get_json[0]["Id"])
-                pr_langd = str(pr_get_json[0]["RegistrationNo"])
+                pr_langd = str(pr_get_json[0]["ChargeNumber"])
                 part_id = int(pr_get_json[0]["PartId"])
 
                 SERTILLG = None
@@ -3601,7 +3601,7 @@ else:
                     url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                     json_product_record = {
                         "ProductRecordId": int(product_new_record_id),
-                        "RegistrationNo": {"Value": str(new_length)}
+                        "ChargeNumber": {"Value": str(new_length)}
                     }
 
                     def RetryZZ(s, max_tries=40):
@@ -3705,7 +3705,7 @@ else:
                 url_product_record_update = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords/SetProperties"
                 json_product_record = {
                     "ProductRecordId": int(pr_id),
-                    "RegistrationNo": {"Value": f"{int(int(pr_langd)-float(total_langd))}"}
+                    "ChargeNumber": {"Value": f"{int(int(pr_langd)-float(total_langd))}"}
                 }
                 def RetryZZ(s, max_tries=40):
                     counter = 0
@@ -3873,7 +3873,7 @@ else:
 
                     pr_get = Retry10000(s)
                     pr_get_json = pr_get.json()
-                    part_id = str(pr_get_json[0]["RegistrationNo"])
+                    part_id = str(pr_get_json[0]["ChargeNumber"])
                     # part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
                     #
                     # def Retry10001(s, max_tries=40):
@@ -4008,7 +4008,7 @@ else:
 
                     pr_get = Retry10000(s)
                     pr_get_json = pr_get.json()
-                    part_id = str(pr_get_json[0]["RegistrationNo"])
+                    part_id = str(pr_get_json[0]["ChargeNumber"])
                     # part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
                     #
                     # def Retry10001(s, max_tries=40):
