@@ -47,7 +47,7 @@ else:
     username = parser['inloggning']['username']
     password = parser['inloggning']['password']
 
-    ODBC = parser['ODBC']['DSN']
+    #ODBC = parser['ODBC']['DSN']
 
     #lagerplats_otvattat
     lagerplats_otvattat = parser['logics']['lagerplats_otvattat']
