@@ -1869,6 +1869,7 @@ else:
                         nextserial = int(next_serial_number_string[3:])
                         nextserial_final = nextserial+1
 
+
                         create_PO = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/Create"
                         json_create_po = {
                                               "SupplierId": int(supplier_code),
@@ -1895,6 +1896,7 @@ else:
                         create_po_create = RetryCPO(s)
                         create_po_create_json = create_po_create.json()
                         po_id = create_po_create_json["EntityId"]
+
 
                         create_PO_row = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/AddRow"
                         json_create_po_row = {
@@ -1923,6 +1925,8 @@ else:
                         create_po_row_create = RetryCPOR(s)
                         create_po_row_create_json = create_po_row_create.json()
                         por_id = create_po_row_create_json["EntityId"]
+
+
 
                         linked_cust_order = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrderRows?$filter=Id eq {int(por_id)}"
 
@@ -1982,6 +1986,8 @@ else:
 
                         del_and_rows = RetryDA(s)
                         del_and_rows_json = del_and_rows.json()
+
+
 
                         json = {
                             "PurchaseOrderRowId": int(por_id),
@@ -3127,7 +3133,7 @@ else:
     AL_label_rutin.grid(row=0, column=0, padx=(10, 0), pady=(2, 20), sticky=W, columnspan=2)
 
     # Label till ordernummer i rapportera inleverans
-    AL_label_ordernumber = ttk.Label(tab3, text="Ordernummer: ", font=("Calibri", 14, "bold"))
+    AL_label_ordernumber = ttk.Label(tab3, text="Kundnummer: ", font=("Calibri", 14, "bold"))
     AL_label_ordernumber.grid(row=1, column=0, padx=(10, 0), pady=1, sticky=W)
 
     # Entry till ordernummer
@@ -3194,7 +3200,7 @@ else:
 
     AL_button_edit = ttk.Button(tab3, text="Uppdatera", style="my.TButton", command=update_record_UL)
     AL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
-    AL_button_recieve = ttk.Button(tab3, text="Utleverera", style="my.TButton", command=create_invoice)
+    AL_button_recieve = ttk.Button(tab3, text="Återlämna", style="my.TButton", command=create_invoice)
     AL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
 
     my_tree_AL.bind('<ButtonRelease-1>', select_record_AL)
