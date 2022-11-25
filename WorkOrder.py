@@ -16,7 +16,7 @@ from dateutil.relativedelta import *
 from multiprocessing import Queue
 
 # Om vi har trial period!
-trialperiod = '2022-12-01 07:00:00'
+trialperiod = '2023-12-01 07:00:00'
 now = str(datetime.now())
 if now > trialperiod:
     window1 = ThemedTk(theme="blue")
