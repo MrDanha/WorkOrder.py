@@ -16,7 +16,7 @@ from dateutil.relativedelta import *
 from multiprocessing import Queue
 
 # Om vi har trial period!
-trialperiod = '2022-12-01 07:00:00'
+trialperiod = '2022-12-18 07:00:00'
 now = str(datetime.now())
 if now > trialperiod:
     window1 = ThemedTk(theme="blue")
@@ -510,7 +510,6 @@ else:
                         }
                     serials_end.append(serial_keys)
 
-                    # KUK
                 json = {
                     "PurchaseOrderRowId": int(r),
                     "Quantity": float(o),
@@ -1253,6 +1252,8 @@ else:
 
     def populate_treeview_AL(events):
         try:
+            #tab3.config(cursor="watch")
+            #tab3.update()
             for u in my_tree_AL.get_children():
                 my_tree_AL.delete(u)
             ordernumber = str(AL_entry_ordernumber.get())
@@ -1382,9 +1383,10 @@ else:
 
                                     my_tree_AL.insert('', 'end', values=(0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"]))
 
-
+            #tab3.config(cursor="")
 
         except Exception as e:
+            #(cursor="")
             messagebox.showerror("Error", f"Issues with populating the treeview {e}")
 
 
@@ -1422,6 +1424,8 @@ else:
 
     def create_invoice():
         try:
+            #tab3.config(cursor="watch")
+            #tab3.update()
             # my_tree_AL.column("Återlämna", anchor=W, width=100)
             # my_tree_AL.column("Serienummer", anchor=W, width=130)
             # my_tree_AL.column("Artikelnr.", anchor=W, width=110)
@@ -3116,7 +3120,7 @@ else:
                 #                             po_and_rows_json = po_and_rows.json()
                 #                         else:
                 #                             pass
-
+            #(cursor="")
             messagebox.showinfo("Info", "Återlämningen gick ok!")
             for u in my_tree_ul.get_children():
                 my_tree_ul.delete(u)
@@ -3126,6 +3130,7 @@ else:
 
             # Uppdatera extra fälten på serienummer härnäst
         except Exception as e:
+            #tab3.config(cursor="")
             messagebox.showinfo("Info", e)
 
 
