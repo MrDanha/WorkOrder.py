@@ -16,7 +16,7 @@ from dateutil.relativedelta import *
 from multiprocessing import Queue
 
 # Om vi har trial period!
-trialperiod = '2022-12-18 07:00:00'
+trialperiod = '2023-01-18 07:00:00'
 now = str(datetime.now())
 if now > trialperiod:
     window1 = ThemedTk(theme="blue")
@@ -2052,14 +2052,48 @@ else:
                             WH_Get_json = WH_Get.json()
                             wh_id = int(WH_Get_json[0]["Id"])
 
+                            pl_id_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=PartId eq {int(var_partid)} and WarehouseId eq {int(wh_id)} and Name eq '{lagerplats_otvattat}' and LifeCycleState eq 10&$TOP=1"
+
+                            def RetryPL_ID(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=pl_id_url, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            invent_pr_json = None
+                            pl_id_get = RetryPL_ID(s)
                             invent_pr = f"https://{host}/sv/{company}/api/v1/Inventory/Parts/ReportStockCount"
-                            invent_pr_json = {
-                                                    "PartId": int(var_partid),
-                                                      "WarehouseId": int(wh_id),
-                                                      "Name": f"{lagerplats_otvattat}",
-                                                      "Balance": 1.0,
-                                                      "SerialNumber": "SER"+f"{nextserial_final}"
-                                                }
+                            if pl_id_get.text == [] or pl_id_get.text == "[]":
+                                invent_pr_json = {
+                                    "PartId": int(var_partid),
+                                    "WarehouseId": int(wh_id),
+                                    "Name": f"{lagerplats_otvattat}",
+                                    "Balance": 1.0,
+                                    "SerialNumber": "SER" + f"{nextserial_final}"
+                                }
+                            elif pl_id_get.text != [] or pl_id_get.text != "[]":
+                                pl_id_json = pl_id_get.json()
+                                pl_id = int(pl_id_json[0]["Id"])
+                                invent_pr_json = {
+                                    "PartId": int(var_partid),
+                                    "WarehouseId": int(wh_id),
+                                    "PartLocationId": int(pl_id),
+                                    "Balance": (float(1.0)),
+                                    "SerialNumber": "SER" + f"{nextserial_final}"
+                                }
+
+
+
 
                             def RetryInvent(s, max_tries=40):
                                 counter = 0
@@ -3560,14 +3594,45 @@ else:
                     WH_Get_json = WH_Get.json()
                     wh_id = int(WH_Get_json[0]["Id"])
 
+                    pl_id_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=PartId eq {int(part_id)} and WarehouseId eq {int(wh_id)} and Name eq '{lagerplats}' and LifeCycleState eq 10&$TOP=1"
+
+                    def RetryPL_ID(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=pl_id_url, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    invent_pr_json = None
+                    pl_id_get = RetryPL_ID(s)
                     invent_pr = f"https://{host}/sv/{company}/api/v1/Inventory/Parts/ReportStockCount"
-                    invent_pr_json = {
-                        "PartId": int(part_id),
-                        "WarehouseId": int(wh_id),
-                        "Name": f"{lagerplats}",
-                        "Balance": 1.0,
-                        "SerialNumber": "SER" + f"{nextserial_final}"
-                    }
+                    if pl_id_get.text == [] or pl_id_get.text == "[]":
+                        invent_pr_json = {
+                            "PartId": int(part_id),
+                            "WarehouseId": int(wh_id),
+                            "Name": f"{lagerplats}",
+                            "Balance": 1.0,
+                            "SerialNumber": "SER" + f"{nextserial_final}"
+                        }
+                    elif pl_id_get.text != [] or pl_id_get.text != "[]":
+                        pl_id_json = pl_id_get.json()
+                        pl_id = int(pl_id_json[0]["Id"])
+                        invent_pr_json = {
+                            "PartId": int(part_id),
+                            "WarehouseId": int(wh_id),
+                            "PartLocationId": int(pl_id),
+                            "Balance": (float(1.0)),
+                            "SerialNumber": "SER" + f"{nextserial_final}"
+                        }
 
                     def RetryInvent(s, max_tries=40):
                         counter = 0
