@@ -496,6 +496,49 @@ else:
                 ef_pr_json = ef_pr.json()
                 next_serial_number_string = ef_pr_json[0]["SerialNumber"]
 
+                WH_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{LS_huvud}'"
+
+                def RetryWH(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=WH_url, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                WH_Get = RetryWH(s)
+                WH_Get_json = WH_Get.json()
+                wh_id = int(WH_Get_json[0]["Id"])
+
+                pl_id_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=PartId eq {int(t)} and WarehouseId eq {int(wh_id)} and Name eq '{lagerplats}' and LifeCycleState eq 10&$TOP=1"
+
+                def RetryPL_ID(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=pl_id_url, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                pl_id_get = RetryPL_ID(s)
+
+
                 serials = []
                 nextserial = int(next_serial_number_string[3:])
                 for next in range(int_Q):
@@ -509,17 +552,32 @@ else:
                             "Quantity": 1.0
                         }
                     serials_end.append(serial_keys)
+                json = None
 
-                json = {
-                    "PurchaseOrderRowId": int(r),
-                    "Quantity": float(o),
-                    "DeleteFutureRest": False,
-                    "Locations": [{
-                        "PartLocationName": f"{lagerplats}",
+                if pl_id_get.text == [] or pl_id_get.text == "[]":
+                    json = {
+                        "PurchaseOrderRowId": int(r),
                         "Quantity": float(o),
-                        "ProductRecords": serials_end
-                    }]
-                }
+                        "DeleteFutureRest": False,
+                        "Locations": [{
+                            "PartLocationName": f"{lagerplats}",
+                            "Quantity": float(o),
+                            "ProductRecords": serials_end
+                        }]
+                    }
+                elif pl_id_get.text != [] or pl_id_get.text != "[]":
+                    pl_id_get_json = pl_id_get.json()
+                    json = {
+                        "PurchaseOrderRowId": int(r),
+                        "Quantity": float(o),
+                        "DeleteFutureRest": False,
+                        "Locations": [{
+                            "PartLocationId": int(pl_id_get_json[0]["Id"]),
+                            "Quantity": float(o),
+                            "ProductRecords": serials_end
+                        }]
+                    }
+
                 url_post_arrivals = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/ReportArrivals"
                 json = {
                         "Rows": [json]
@@ -635,6 +693,9 @@ else:
     IL_entry_ordernumber = ttk.Entry(tab1, font=("Calibri", 14))
     IL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 40), sticky=W)
     IL_entry_ordernumber.bind("<Return>", populate_treeview_recieve)
+
+
+
 
     # Skal till TreeView för att hämta information från plocklista
     tree_frame_plock1 = Frame(tab1)
@@ -1136,16 +1197,77 @@ else:
                             else:
                                 for ioren in po_and_rows_json[0]["Rows"]:
                                     if int(ioren["LinkedStockOrderRowId"]) == int(r):
-                                        json_1 = {
-                                            "PurchaseOrderRowId": int(ioren["Id"]),
-                                            "Quantity": float(len(co_and_rows_json["ProductRecordIds"])),
-                                            "DeleteFutureRest": False,
-                                            "Locations": [{
-                                                "PartLocationName": f"{stock_location}",
-                                                "Quantity": float(len(co_and_rows_json["ProductRecordIds"]))#,
-                                                #"ProductRecords": serials_do_keys
-                                            }]
-                                        }
+
+                                        #################################################################################
+                                        WH_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{LS_uthyrning}'"
+
+                                        def RetryWH(s, max_tries=40):
+                                            counter = 0
+                                            while True:
+                                                reportResulst = s.get(url=WH_url, verify=False)
+                                                if reportResulst.status_code == 200:
+                                                    return reportResulst
+
+                                                counter += 1
+                                                if counter == max_tries:
+                                                    messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                                    break
+
+                                                if reportResulst.status_code != 200:
+                                                    r = Retry1(s)
+                                                time.sleep(0.4)
+
+                                        WH_Get = RetryWH(s)
+                                        WH_Get_json = WH_Get.json()
+                                        wh_id = int(WH_Get_json[0]["Id"])
+
+                                        pl_id_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=PartId eq {int(partid)} and WarehouseId eq {int(wh_id)} and Name eq '{stock_location}' and LifeCycleState eq 10&$TOP=1"
+
+                                        def RetryPL_ID(s, max_tries=40):
+                                            counter = 0
+                                            while True:
+                                                reportResulst = s.get(url=pl_id_url, verify=False)
+                                                if reportResulst.status_code == 200:
+                                                    return reportResulst
+
+                                                counter += 1
+                                                if counter == max_tries:
+                                                    messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                                    break
+
+                                                if reportResulst.status_code != 200:
+                                                    r = Retry1(s)
+                                                time.sleep(0.4)
+
+                                        pl_id_get = RetryPL_ID(s)
+
+                                        json_1 = None
+
+                                        if pl_id_get.text == [] or pl_id_get.text == "[]":
+                                            json_1 = {
+                                                "PurchaseOrderRowId": int(ioren["Id"]),
+                                                "Quantity": float(len(co_and_rows_json["ProductRecordIds"])),
+                                                "DeleteFutureRest": False,
+                                                "Locations": [{
+                                                    "PartLocationName": f"{stock_location}",
+                                                    "Quantity": float(len(co_and_rows_json["ProductRecordIds"]))  # ,
+                                                    # "ProductRecords": serials_do_keys
+                                                }]
+                                            }
+                                        elif pl_id_get.text != [] or pl_id_get.text != "[]":
+                                            pl_id_get_json = pl_id_get.json()
+                                            json_1 = {
+                                                "PurchaseOrderRowId": int(ioren["Id"]),
+                                                "Quantity": float(len(co_and_rows_json["ProductRecordIds"])),
+                                                "DeleteFutureRest": False,
+                                                "Locations": [{
+                                                    "PartLocationId": int(pl_id_get_json[0]["Id"]),
+                                                    "Quantity": float(len(co_and_rows_json["ProductRecordIds"]))  # ,
+                                                    # "ProductRecords": serials_do_keys
+                                                }]
+                                            }
+                                        #################################################################################
+
                                         url_post_arrivals = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/ReportArrivals"
                                         json = {
                                             "Rows": [json_1]
@@ -1991,17 +2113,75 @@ else:
                         del_and_rows = RetryDA(s)
                         del_and_rows_json = del_and_rows.json()
 
+                        ######################################################################
+                        WH_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{LS_huvud}'"
+
+                        def RetryWH(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=WH_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        WH_Get = RetryWH(s)
+                        WH_Get_json = WH_Get.json()
+                        wh_id = int(WH_Get_json[0]["Id"])
+
+                        pl_id_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=PartId eq {int(var_partid)} and WarehouseId eq {int(wh_id)} and Name eq '{lagerplats_otvattat}' and LifeCycleState eq 10&$TOP=1"
+
+                        def RetryPL_ID(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=pl_id_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showinfo("Error", f'Not able to fetch the connected customerorder row')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        pl_id_get = RetryPL_ID(s)
+
+                        json = None
+
+                        if pl_id_get.text == [] or pl_id_get.text == "[]":
+                            json = {
+                                "PurchaseOrderRowId": int(por_id),
+                                "Quantity": float(1.0),
+                                "DeleteFutureRest": False,
+                                "Locations": [{
+                                    "PartLocationName": f"{lagerplats_otvattat}",
+                                    "Quantity": float(1.0)
+                                }]
+                            }
+                        elif pl_id_get.text != [] or pl_id_get.text != "[]":
+                            pl_id_get_json = pl_id_get.json()
+                            json = {
+                                "PurchaseOrderRowId": int(por_id),
+                                "Quantity": float(1.0),
+                                "DeleteFutureRest": False,
+                                "Locations": [{
+                                    "PartLocationId": int(pl_id_get_json[0]["Id"]),
+                                    "Quantity": float(1.0)
+                                }]
+                            }
+                        ######################################################################
 
 
-                        json = {
-                            "PurchaseOrderRowId": int(por_id),
-                            "Quantity": float(1.0),
-                            "DeleteFutureRest": False,
-                            "Locations": [{
-                                "PartLocationName": f"{lagerplats_otvattat}",
-                                "Quantity": float(1.0)
-                            }]
-                        }
                         url_post_arrivals = f"https://{host}/sv/{company}/api/v1/Purchase/PurchaseOrders/ReportArrivals"
                         json = {
                             "Rows": [json]
@@ -4156,6 +4336,9 @@ else:
 
     # Skal till TreeView för att hämta information från plocklista
     # part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"])
+
+
+
     tree_frame_SPL = Frame(tab4)
     tree_frame_SPL.grid(row=5, column=0, sticky=W, columnspan=4, ipadx=390, ipady=40, pady=(0, 10), padx=(10, 0))
     tree_scroll_SPL = ttk.Scrollbar(tree_frame_SPL)
@@ -4193,7 +4376,22 @@ else:
     my_tree_SPL.heading("PL_ID", text="PL_ID", anchor=W)
     my_tree_SPL.pack(fill='both', expand=True)
 
-
+    # def treeview_sort_column(my_tree_SPL, col, reverse):
+    #     l = [(my_tree_SPL.set(k, col), k) for k in my_tree_SPL.get_children('')]
+    #     l.sort(reverse=reverse)
+    #
+    #     # rearrange items in sorted positions
+    #     for index, (val, k) in enumerate(l):
+    #         my_tree_SPL.move(k, '', index)
+    #
+    #     # reverse sort next time
+    #     my_tree_SPL.heading(col, command=lambda: \
+    #         treeview_sort_column(my_tree_SPL, col, not reverse))
+    #
+    #
+    # for col in my_tree_SPL['columns']:
+    #     my_tree_SPL.heading(col, text=col, command=lambda: \
+    #         treeview_sort_column(my_tree_SPL, col, False))
 
     SPL_label_langd_label = ttk.Label(tab4, text="Splitt-längd:", font=("Calibri", 12, "bold"))
     SPL_label_langd_label.grid(row=7, column=0, padx=(10, 0), pady=1, sticky=W)
