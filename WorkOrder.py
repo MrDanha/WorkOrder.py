@@ -240,6 +240,7 @@ else:
 
                         counter += 1
                         if counter == max_tries:
+
                             messagebox.showerror("Error", f'Not able to fetch the purchase order')
                             break
 
@@ -250,6 +251,11 @@ else:
                 po_and_rows = Retry2(s)
                 po_and_rows_json = po_and_rows.json()
                 if po_and_rows_json == []:
+                    tom_lista = []
+                    update_function_IL(tom_lista)
+                    update_function_IL_lenght(tom_lista)
+                    IL_entry_ordernumber.delete(0, END)
+                    IL_entry_ordernumber.focus_set()
                     messagebox.showerror("Error", f'Not able to fetch the purchase order')
                 else:
                     part_numbers = []
@@ -321,6 +327,11 @@ else:
                     update_function_IL_lenght(length_list)
 
         except Exception as e:
+            tom_lista = []
+            update_function_IL(tom_lista)
+            update_function_IL_lenght(tom_lista)
+            IL_entry_ordernumber.delete(0, END)
+            IL_entry_ordernumber.focus_set()
             messagebox.showerror("Error", f"Issues with populating the treeview {e}")
 
     # Funktion för att ankomstrapportera
@@ -1307,6 +1318,11 @@ else:
                 po_and_rows = Retry2(s)
                 po_and_rows_json = po_and_rows.json()
                 if po_and_rows_json == []:
+                    tom_lista = []
+                    update_function_UL(tom_lista)
+                    update_function_UL_lenght(tom_lista)
+                    UL_entry_ordernumber.delete(0, END)
+                    UL_entry_ordernumber.focus_set()
                     messagebox.showerror("Error", f'Not able to fetch the customer order')
                 else:
 
@@ -1449,6 +1465,11 @@ else:
                     update_function_UL_lenght(length_list)
 
         except Exception as e:
+            tom_lista = []
+            update_function_UL(tom_lista)
+            update_function_UL_lenght(tom_lista)
+            UL_entry_ordernumber.delete(0, END)
+            UL_entry_ordernumber.focus_set()
             messagebox.showerror("Error", f"Issues with populating the treeview {e}")
 
     # Funktion för markerad rad i rapportera utleveransrutinen, skriver också i Entry-boxes
@@ -1799,6 +1820,9 @@ else:
 
 
         messagebox.showinfo("Info", "Utleveransen gick ok!")
+        tom_lista = []
+        update_function_UL(tom_lista)
+        update_function_UL_lenght(tom_lista)
         for u in my_tree_ul.get_children():
             my_tree_ul.delete(u)
         UL_entry_ordernumber.delete(0, END)
