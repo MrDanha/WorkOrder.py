@@ -2049,12 +2049,13 @@ else:
             AL_entry_recieve.insert(0, children[5])
             var.set(int(children[0]))
             var2.set(int(children[6]))
+            AL_label_mark["text"] = f"Antal markerade rader: {len(my_tree_AL.selection())}"
         except Exception as e:
             messagebox.showerror("Error", f"Issues with selecting the record {e}")
     #TEST
 
     # Funktion för att uppdatera rad i rapportera utleveransrutinen
-    def update_record_UL():
+    def update_record_AL():
         try:
             if AL_entry_recieve.get() != "":
                 selected = my_tree_AL.selection()[0]
@@ -2065,6 +2066,7 @@ else:
             AL_entry_recieve.delete(0, END)
             var.set(0)
             var2.set(0)
+            #AL_mark_as_return
         except Exception as e:
             messagebox.showerror("Error", f"Issues with updating the record {e}")
 
@@ -3887,6 +3889,20 @@ else:
     AL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 40), sticky=W)
     AL_entry_ordernumber.bind("<Return>", populate_treeview_AL)
 
+    def AL_mark_as_return():
+        selected_items = my_tree_AL.selection()
+        for itemss in selected_items:
+            items = my_tree_AL.item(itemss)
+            values = items.get("values")
+            my_tree_AL.set(itemss, "#1", int(1))
+
+
+    AL_buttom_mark = ttk.Button(tab3, text="Markera som återlämnade", command=AL_mark_as_return)
+    AL_buttom_mark.grid(row=2, column=1, padx=(10, 0), pady=(0, 40), sticky=W, ipadx=30)
+
+    AL_label_mark = ttk.Label(tab3, text="Antal markerade rader: ", font=('Helvetica', 12, "bold"))
+    AL_label_mark.grid(row=2, column=2, padx=(10, 0), pady=(0, 40), sticky=W, ipadx=30)
+
     # Skal till TreeView för att hämta information från plocklista
     #part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"])
     tree_frame_AL = Frame(tab3)
@@ -3944,7 +3960,7 @@ else:
     # UL_entry_length = ttk.Entry(tab2, font=("Calibri", 14))
     # UL_entry_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
 
-    AL_button_edit = ttk.Button(tab3, text="Uppdatera", style="my.TButton", command=update_record_UL)
+    AL_button_edit = ttk.Button(tab3, text="Uppdatera", style="my.TButton", command=update_record_AL)
     AL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
     AL_button_recieve = ttk.Button(tab3, text="Återlämna", style="my.TButton", command=create_invoice)
     AL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
