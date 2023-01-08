@@ -1960,77 +1960,103 @@ else:
                     messagebox.showerror("Error", f'Not able to fetch the warehouse')
                 else:
                     wh_id = int(wh_get_json[0]["Id"])
+                    customer_url = f"https://{host}/sv/{company}/api/v1/Sales/Customers?$filter=Code eq '{ordernumber}'"
 
-                    pl_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=WarehouseId eq {wh_id} and Name eq '{ordernumber}' and LifeCycleState eq 10 and Balance gt 0&$expand=PartLocationProductRecords"
-
-                    def Retry900(s, max_tries=40):
+                    def RetryCustomer(s, max_tries=40):
                         counter = 0
                         while True:
-                            reportResulst = s.get(url=pl_url, verify=False)
+                            reportResulst = s.get(url=customer_url, verify=False)
                             if reportResulst.status_code == 200:
                                 return reportResulst
 
                             counter += 1
                             if counter == max_tries:
-                                messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
+                                messagebox.showerror("Error", f'Not able to fetch the warehouse')
                                 break
 
                             if reportResulst.status_code != 200:
                                 r = Retry1(s)
                             time.sleep(0.4)
 
-                    pl_get = Retry900(s)
-                    if pl_get == []:
-                        messagebox.showerror("Error", f'Did not find any rows for the specific project')
+                    customer_get = RetryCustomer(s)
+                    customer_get_json = customer_get.json()
+                    if customer_get_json == []:
+                        AL_label_customer["text"] = ""
+                        messagebox.showerror("Error", f'Not able to fetch the customer information')
                     else:
-                        pl_get_json = pl_get.json()
-                        for pr_bals in pl_get_json:
-                            for iora in pr_bals["PartLocationProductRecords"]:
-                                if iora["Quantity"] > 0:
-                                    #print(iora)
-                                    pr_url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=Id eq {iora['ProductRecordId']}"
+                        kundnamn = customer_get_json[0]["Name"]
+                        AL_label_customer["text"] = kundnamn
 
-                                    def Retry10000(s, max_tries=40):
-                                        counter = 0
-                                        while True:
-                                            reportResulst = s.get(url=pr_url, verify=False)
-                                            if reportResulst.status_code == 200:
-                                                return reportResulst
+                        pl_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=WarehouseId eq {wh_id} and Name eq '{ordernumber}' and LifeCycleState eq 10 and Balance gt 0&$expand=PartLocationProductRecords"
 
-                                            counter += 1
-                                            if counter == max_tries:
-                                                messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
-                                                break
+                        def Retry900(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=pl_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
 
-                                            if reportResulst.status_code != 200:
-                                                r = Retry1(s)
-                                            time.sleep(0.4)
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
+                                    break
 
-                                    pr_get = Retry10000(s)
-                                    pr_get_json = pr_get.json()
-                                    part_id = int(pr_get_json[0]["PartId"])
-                                    part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
 
-                                    def Retry10001(s, max_tries=40):
-                                        counter = 0
-                                        while True:
-                                            reportResulst = s.get(url=part_url, verify=False)
-                                            if reportResulst.status_code == 200:
-                                                return reportResulst
+                        pl_get = Retry900(s)
+                        if pl_get == []:
+                            messagebox.showerror("Error", f'Did not find any rows for the specific project')
+                        else:
+                            pl_get_json = pl_get.json()
+                            for pr_bals in pl_get_json:
+                                for iora in pr_bals["PartLocationProductRecords"]:
+                                    if iora["Quantity"] > 0:
+                                        #print(iora)
+                                        pr_url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=Id eq {iora['ProductRecordId']}"
 
-                                            counter += 1
-                                            if counter == max_tries:
-                                                messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
-                                                break
+                                        def Retry10000(s, max_tries=40):
+                                            counter = 0
+                                            while True:
+                                                reportResulst = s.get(url=pr_url, verify=False)
+                                                if reportResulst.status_code == 200:
+                                                    return reportResulst
 
-                                            if reportResulst.status_code != 200:
-                                                r = Retry1(s)
-                                            time.sleep(0.4)
+                                                counter += 1
+                                                if counter == max_tries:
+                                                    messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                                    break
 
-                                    part_get = Retry10001(s)
-                                    part_get_json = part_get.json()
+                                                if reportResulst.status_code != 200:
+                                                    r = Retry1(s)
+                                                time.sleep(0.4)
 
-                                    my_tree_AL.insert('', 'end', values=(0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"]))
+                                        pr_get = Retry10000(s)
+                                        pr_get_json = pr_get.json()
+                                        part_id = int(pr_get_json[0]["PartId"])
+                                        part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
+
+                                        def Retry10001(s, max_tries=40):
+                                            counter = 0
+                                            while True:
+                                                reportResulst = s.get(url=part_url, verify=False)
+                                                if reportResulst.status_code == 200:
+                                                    return reportResulst
+
+                                                counter += 1
+                                                if counter == max_tries:
+                                                    messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                                    break
+
+                                                if reportResulst.status_code != 200:
+                                                    r = Retry1(s)
+                                                time.sleep(0.4)
+
+                                        part_get = Retry10001(s)
+                                        part_get_json = part_get.json()
+
+                                        my_tree_AL.insert('', 'end', values=(0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"]))
 
             #tab3.config(cursor="")
 
@@ -3902,6 +3928,9 @@ else:
 
     AL_label_mark = ttk.Label(tab3, text="Antal markerade rader: ", font=('Helvetica', 12, "bold"))
     AL_label_mark.grid(row=2, column=2, padx=(10, 0), pady=(0, 40), sticky=W, ipadx=30)
+
+    AL_label_customer = ttk.Label(tab3, text="", font=('Helvetica', 12, "bold"))
+    AL_label_customer.grid(row=1, column=1, padx=(10, 0), pady=(0, 5), sticky=W, ipadx=30)
 
     # Skal till TreeView för att hämta information från plocklista
     #part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"])
