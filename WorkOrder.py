@@ -910,358 +910,6 @@ else:
     combobox_IL.bind("<<ComboboxSelected>>", populate_treeview_recieve_with_combo)
     combobox_IL_2.bind("<<ComboboxSelected>>", populate_treeview_recieve_with_combo)
 
-    options_UL_ComboBox = ['']
-    selected_UL_ComboBox = StringVar(tab2)
-    selected_UL_ComboBox.set("")
-    combobox_UL = ttk.Combobox(tab2, values=options_UL_ComboBox, state="normal", textvariable=selected_UL_ComboBox)
-
-    options_UL_ComboBox_2 = ['']
-    selected_UL_ComboBox_2 = StringVar(tab2)
-    selected_UL_ComboBox_2.set("")
-    combobox_UL_2 = ttk.Combobox(tab2, values=options_UL_ComboBox_2, state="normal", textvariable=selected_UL_ComboBox_2)
-
-
-    def backend_get_new_values_ComboBox_UL(listar):
-        listar = listar
-        # Gör saker som uppdaterar ComboBox
-        return listar
-
-
-    def get_new_values_ComboBox_UL(recieve_list_1):
-        recieve_list_1.append("")
-        recieve_list_1.sort()
-        listar = backend_get_new_values_ComboBox_UL(recieve_list_1)
-        combobox_UL["values"] = listar
-        # combobox_IL_2["values"] = listar
-
-
-    def update_function_UL(recieve_list):
-        combobox_UL.config(postcommand=get_new_values_ComboBox_UL(recieve_list))
-        # combobox_IL_2.config(postcommand=get_new_values_ComboBox_IL(recieve_list))
-
-
-    def backend_get_new_values_ComboBox_UL_lenght(listar):
-        listar = listar
-        # Gör saker som uppdaterar ComboBox
-        return listar
-
-
-    def get_new_values_ComboBox_UL_lenght(recieve_list_1):
-        recieve_list_1.append("")
-        recieve_list_1.sort()
-        listar = backend_get_new_values_ComboBox_UL(recieve_list_1)
-        # combobox_IL["values"] = listar
-        combobox_UL_2["values"] = listar
-
-
-    def update_function_UL_lenght(recieve_list):
-        # combobox_IL.config(postcommand=get_new_values_ComboBox_IL(recieve_list))
-        combobox_UL_2.config(postcommand=get_new_values_ComboBox_UL_lenght(recieve_list))
-
-
-    def populate_treeview_UL_with_combo(events):
-        try:
-            for u in my_tree_ul.get_children():
-                my_tree_ul.delete(u)
-
-            ordernumber = str(UL_entry_ordernumber.get())
-            urllib3.disable_warnings()
-            s = requests.session()
-            url = f"https://{host}/sv/{company}/login"
-            inloggning = \
-                {
-                    "Username": f"{username}",
-                    "Password": f"{password}",
-                    "ForceRelogin": True
-                }
-
-            def Retry1(s, max_tries=40):
-                counter = 0
-                while True:
-                    # s = requests.session()
-                    r = s.post(url=url, json=inloggning, verify=False)
-                    if r.status_code == 200:
-                        return r
-                    counter += 1
-                    if counter == max_tries:
-                        messagebox.showerror("Error", f'Not able to login to the API')
-                        break
-                    time.sleep(0.4)
-
-            r = Retry1(s)
-            r_fel = r.json()
-            if r_fel == None or r_fel == "None":
-                messagebox.showerror("Error", f'Not able to login to the API')
-            else:
-                url_get_rows_PO = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders?$filter=OrderNumber eq '{ordernumber}' and LifeCycleState eq 10&$expand=Rows, Part"
-
-                def Retry2(s, max_tries=40):
-                    counter = 0
-                    while True:
-                        reportResulst = s.get(url=url_get_rows_PO, verify=False)
-                        if reportResulst.status_code == 200:
-                            return reportResulst
-
-                        counter += 1
-                        if counter == max_tries:
-                            messagebox.showerror("Error", f'Not able to fetch the customer order')
-                            break
-
-                        if reportResulst.status_code != 200:
-                            r = Retry1(s)
-                        time.sleep(0.4)
-
-                po_and_rows = Retry2(s)
-                po_and_rows_json = po_and_rows.json()
-                if po_and_rows_json == []:
-                    messagebox.showerror("Error", f'Not able to fetch the customer order')
-                else:
-
-                    partnumbers = []
-                    length_list = []
-                    for i in po_and_rows_json[0]["Rows"]:
-                        if i["RestQuantity"] <= 0:
-                            pass
-                        else:
-                            part_id = i["PartId"]
-                            unit_id = i["UnitId"]
-                            url_get_part_info = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {int(part_id)}"
-
-                            def Retry3(s, max_tries=40):
-                                counter = 0
-                                while True:
-                                    reportResulst = s.get(url=url_get_part_info, verify=False)
-                                    if reportResulst.status_code == 200:
-                                        return reportResulst
-
-                                    counter += 1
-                                    if counter == max_tries:
-                                        messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
-                                        break
-
-                                    if reportResulst.status_code != 200:
-                                        r = Retry1(s)
-                                    time.sleep(0.4)
-
-                            part = Retry3(s)
-                            part_json = part.json()
-                            partnumber = str(part_json[0]["PartNumber"])
-                            desc = str(part_json[0]["Description"])
-
-                            url_get_unit_info = f"https://{host}/sv/{company}/api/v1/Common/Units?$filter=Id eq {int(unit_id)}"
-
-                            def Retry4(s, max_tries=40):
-                                counter = 0
-                                while True:
-                                    reportResulst = s.get(url=url_get_unit_info, verify=False)
-                                    if reportResulst.status_code == 200:
-                                        return reportResulst
-
-                                    counter += 1
-                                    if counter == max_tries:
-                                        messagebox.showinfo("Error", f'Not able to fetch the part unit information on the parts included in the customer order')
-                                        break
-
-                                    if reportResulst.status_code != 200:
-                                        r = Retry1(s)
-                                    time.sleep(0.4)
-
-                            unit = Retry4(s)
-                            unit_json = unit.json()
-                            unit_code = str(unit_json[0]["Code"])
-                            restquantity = float(i["RestQuantity"])
-                            recieveQ = float(i["RestQuantity"])
-                            if not i["AlternatePreparationCode"]:
-                                for u in my_tree_ul.get_children():
-                                    my_tree_ul.delete(u)
-                                messagebox.showerror("Error", f"Issues with populating the treeview one or more rows on the customer order is missing the length")
-                                UL_entry_ordernumber.delete(0, END)
-                                UL_entry_ordernumber.focus_set()
-                                break
-                            else:
-                                try:
-                                    length = int(i["AlternatePreparationCode"])
-                                    partnumbers.append(str(partnumber))
-                                    length_list.append(str(length))
-                                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(part_id)} and ChargeNumber eq '{length}'"
-
-                                    def Retry200(s, max_tries=40):
-                                        counter = 0
-                                        while True:
-                                            reportResulst = s.get(url=serial_numbers_w_length, verify=False)
-                                            if reportResulst.status_code == 200:
-                                                return reportResulst
-
-                                            counter += 1
-                                            if counter == max_tries:
-                                                messagebox.showinfo("Error", f'Not able to fetch the serial numbers')
-                                                break
-
-                                            if reportResulst.status_code != 200:
-                                                r = Retry1(s)
-                                            time.sleep(0.4)
-
-                                    serials = Retry200(s)
-                                    serials_json = serials.json()
-                                    serial_numbers_with_right_length = []
-                                    serial_numbers_with_right_length_ids = []
-                                    for ior in serials_json:
-                                        serial_numbers_with_right_length_ids.append(ior["Id"])
-                                        serial_numbers_with_right_length.append(ior["SerialNumber"])
-                                    if not serial_numbers_with_right_length_ids:
-                                        recieveQ = 0
-                                        id = int(i["Id"])
-                                        if str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) == "":
-                                            my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                        elif str(combobox_UL.get()) != "" and str(combobox_UL_2.get()) == "":
-                                            if str(combobox_UL.get()) == str(partnumber):
-                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                            else:
-                                                pass
-                                        elif str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) != "":
-                                            if str(combobox_UL_2.get()) == str(length):
-                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                            else:
-                                                pass
-                                        elif str(combobox_UL_2.get()) != "" and str(combobox_UL.get()) != "":
-                                            if str(combobox_UL.get()) == str(partnumber) and str(combobox_UL_2.get()) == str(length):
-                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                            else:
-                                                pass
-
-                                    else:
-                                        quantity_of_serials = []
-                                        for j in serial_numbers_with_right_length_ids:
-
-                                            serial_numbers_Q = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocationProductRecords?$filter=ProductRecordId eq {int(j)}"
-
-                                            def Retry300(s, max_tries=40):
-                                                counter = 0
-                                                while True:
-                                                    reportResulst = s.get(url=serial_numbers_Q, verify=False)
-                                                    if reportResulst.status_code == 200:
-                                                        return reportResulst
-
-                                                    counter += 1
-                                                    if counter == max_tries:
-                                                        messagebox.showinfo("Error", f'Not able to fetch the stock balance on the serial numbers')
-                                                        break
-
-                                                    if reportResulst.status_code != 200:
-                                                        r = Retry1(s)
-                                                    time.sleep(0.4)
-
-                                            serials_Q = Retry300(s)
-                                            serials_Q_json = serials_Q.json()
-                                            quantity_of_serials.append(float(serials_Q_json[0]["Quantity"]))
-                                        sum_stock = float(sum(quantity_of_serials))
-                                        if recieveQ >= sum_stock:
-                                            recieveQ = sum_stock
-                                        id = int(i["Id"])
-                                        if str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) == "":
-                                            my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                        elif str(combobox_UL.get()) != "" and str(combobox_UL_2.get()) == "":
-                                            if str(combobox_UL.get()) == str(partnumber):
-                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                            else:
-                                                pass
-                                        elif str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) != "":
-                                            if str(combobox_UL_2.get()) == str(length):
-                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                            else:
-                                                pass
-                                        elif str(combobox_UL_2.get()) != "" and str(combobox_UL.get()) != "":
-                                            if str(combobox_UL.get()) == str(partnumber) and str(combobox_UL_2.get()) == str(length):
-                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
-                                            else:
-                                                pass
-
-                                except Exception as e:
-                                    for u in my_tree_ul.get_children():
-                                        my_tree_ul.delete(u)
-                                    messagebox.showerror("Error", f"Issues with converting the length on at least one row")
-                                    UL_entry_ordernumber.delete(0, END)
-                                    UL_entry_ordernumber.focus_set()
-                    partnumbers.sort()
-                    partnumbers = list(set(partnumbers))
-                    length_list.sort()
-                    length_list = list(set(length_list))
-                    update_function_UL(partnumbers)
-                    update_function_UL_lenght(length_list)
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Issues with populating the treeview {e}")
-
-
-    combobox_UL.grid(row=2, column=0, padx=(10, 0), pady=(40, 0), sticky=W, ipadx=10)
-    combobox_UL_2.grid(row=2, column=3, padx=(30, 0), pady=(40, 0), sticky=E, ipadx=10)
-
-    combobox_UL.bind("<<ComboboxSelected>>", populate_treeview_UL_with_combo)
-    combobox_UL_2.bind("<<ComboboxSelected>>", populate_treeview_UL_with_combo)
-    #HÄRHÄR
-    # Skal till TreeView för att hämta information från plocklista
-    tree_frame_plock1 = Frame(tab1)
-    tree_frame_plock1.grid(row=4, column=0, sticky=W, columnspan=4, ipady=70, pady=(0, 10), padx=(10, 0))
-    tree_scroll_plock1 = ttk.Scrollbar(tree_frame_plock1)
-    tree_scroll_plock1.pack(side=RIGHT, fill=Y)
-    my_tree = ttk.Treeview(tree_frame_plock1, style="Custom.Treeview", yscrollcommand=tree_scroll_plock1.set)
-    my_tree.tag_configure("Test", background="lightgrey", font=('Helvetica', 12, "italic"))
-    my_tree.tag_configure("Test1", background="white")
-    tree_scroll_plock1.config(command=my_tree.yview)
-    my_tree['columns'] = ("Artikelnummer", "Benämning", "Restantal", "Inlevereransantal", "Enhet", "Längd", "ID", "PARTID")
-    my_tree['displaycolumns'] = ("Artikelnummer", "Benämning", "Restantal", "Inlevereransantal", "Enhet", "Längd")
-    my_tree.column("#0", width=1, minwidth=1, stretch=0)
-    my_tree.column("Artikelnummer", anchor=W, width=140)
-    my_tree.column("Benämning", anchor=W, width=300)
-    my_tree.column("Restantal", anchor=W, width=90)
-    my_tree.column("Inlevereransantal", anchor=W, width=180)
-    my_tree.column("Enhet", anchor=W, width=90)
-    my_tree.column("Längd", anchor=W, width=90)
-    my_tree.column("ID", anchor=W, width=90)
-    my_tree.column("PARTID", anchor=W, width=90)
-
-    my_tree.heading("#0", text="", anchor=W)
-    my_tree.heading("Artikelnummer", text="Artikelnummer", anchor=W)
-    my_tree.heading("Benämning", text="Benämning", anchor=W)
-    my_tree.heading("Restantal", text="Restantal", anchor=W)
-    my_tree.heading("Inlevereransantal", text="Inlevereransantal", anchor=W)
-    my_tree.heading("Enhet", text="Enhet", anchor=W)
-    my_tree.heading("Längd", text="Längd", anchor=W)
-    my_tree.heading("ID", text="ID", anchor=W)
-    my_tree.heading("PARTID", text="ID", anchor=W)
-    my_tree.pack(fill='both', expand=True)
-
-    IL_label_recieve = ttk.Label(tab1, text="Inleveransantal: ", font=("Calibri", 14, "bold"))
-    IL_label_recieve.grid(row=5, column=0, padx=(10, 0), pady=(0, 0), sticky=W)
-    IL_entry_recieve = ttk.Entry(tab1, font=("Calibri", 14))
-    IL_entry_recieve.grid(row=6, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
-
-    IL_label_length = ttk.Label(tab1, text="Längd: ", font=("Calibri", 14, "bold"))
-    IL_label_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 0), sticky=W)
-    IL_entry_length = ttk.Entry(tab1, font=("Calibri", 14))
-    IL_entry_length.grid(row=6, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
-
-
-
-    IL_button_edit = ttk.Button(tab1, text="Uppdatera", style="my.TButton", command=update_record_IL)
-    IL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
-    IL_button_recieve = ttk.Button(tab1, text="Inleverera", style="my.TButton", command=report_recieve)
-    IL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
-
-
-
-    my_tree.bind('<ButtonRelease-1>', select_record_IL)
-
-    #canvas_lp_11 = Canvas(tab5, width=900, height=80, background='white')
-    #canvas_lp_11.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=10, pady=10)
-
-
-
-
-    # tab2: Design Utleverans
-
-    # Funktion för att populera treeview utleverans
-
     def populate_treeview_dispatch(events):
         try:
             for u in my_tree_ul.get_children():
@@ -1831,6 +1479,364 @@ else:
         UL_entry_ordernumber.focus_set()
 
         # Uppdatera extra fälten på serienummer härnäst
+    # Entry till ordernummer
+    UL_entry_ordernumber = ttk.Entry(tab2, font=("Calibri", 14))
+    UL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 40), sticky=W)
+    UL_entry_ordernumber.bind("<Return>", populate_treeview_dispatch)
+
+    options_UL_ComboBox = ['']
+    selected_UL_ComboBox = StringVar(tab2)
+    selected_UL_ComboBox.set("")
+    combobox_UL = ttk.Combobox(tab2, values=options_UL_ComboBox, state="normal", textvariable=selected_UL_ComboBox)
+
+    options_UL_ComboBox_2 = ['']
+    selected_UL_ComboBox_2 = StringVar(tab2)
+    selected_UL_ComboBox_2.set("")
+    combobox_UL_2 = ttk.Combobox(tab2, values=options_UL_ComboBox_2, state="normal", textvariable=selected_UL_ComboBox_2)
+
+
+    def backend_get_new_values_ComboBox_UL(listar):
+        listar = listar
+        # Gör saker som uppdaterar ComboBox
+        return listar
+
+
+    def get_new_values_ComboBox_UL(recieve_list_1):
+        recieve_list_1.append("")
+        recieve_list_1.sort()
+        listar = backend_get_new_values_ComboBox_UL(recieve_list_1)
+        combobox_UL["values"] = listar
+        # combobox_IL_2["values"] = listar
+
+
+    def update_function_UL(recieve_list):
+        combobox_UL.config(postcommand=get_new_values_ComboBox_UL(recieve_list))
+        # combobox_IL_2.config(postcommand=get_new_values_ComboBox_IL(recieve_list))
+
+
+    def backend_get_new_values_ComboBox_UL_lenght(listar):
+        listar = listar
+        # Gör saker som uppdaterar ComboBox
+        return listar
+
+
+    def get_new_values_ComboBox_UL_lenght(recieve_list_1):
+        recieve_list_1.append("")
+        recieve_list_1.sort()
+        listar = backend_get_new_values_ComboBox_UL(recieve_list_1)
+        # combobox_IL["values"] = listar
+        combobox_UL_2["values"] = listar
+
+
+    def update_function_UL_lenght(recieve_list):
+        # combobox_IL.config(postcommand=get_new_values_ComboBox_IL(recieve_list))
+        combobox_UL_2.config(postcommand=get_new_values_ComboBox_UL_lenght(recieve_list))
+
+
+    def populate_treeview_UL_with_combo(events):
+        try:
+            for u in my_tree_ul.get_children():
+                my_tree_ul.delete(u)
+
+            ordernumber = str(UL_entry_ordernumber.get())
+            urllib3.disable_warnings()
+            s = requests.session()
+            url = f"https://{host}/sv/{company}/login"
+            inloggning = \
+                {
+                    "Username": f"{username}",
+                    "Password": f"{password}",
+                    "ForceRelogin": True
+                }
+
+            def Retry1(s, max_tries=40):
+                counter = 0
+                while True:
+                    # s = requests.session()
+                    r = s.post(url=url, json=inloggning, verify=False)
+                    if r.status_code == 200:
+                        return r
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to login to the API')
+                        break
+                    time.sleep(0.4)
+
+            r = Retry1(s)
+            r_fel = r.json()
+            if r_fel == None or r_fel == "None":
+                messagebox.showerror("Error", f'Not able to login to the API')
+            else:
+                url_get_rows_PO = f"https://{host}/sv/{company}/api/v1/Sales/CustomerOrders?$filter=OrderNumber eq '{ordernumber}' and LifeCycleState eq 10&$expand=Rows, Part"
+
+                def Retry2(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=url_get_rows_PO, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Not able to fetch the customer order')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                po_and_rows = Retry2(s)
+                po_and_rows_json = po_and_rows.json()
+                if po_and_rows_json == []:
+                    messagebox.showerror("Error", f'Not able to fetch the customer order')
+                else:
+
+                    partnumbers = []
+                    length_list = []
+                    for i in po_and_rows_json[0]["Rows"]:
+                        if i["RestQuantity"] <= 0:
+                            pass
+                        else:
+                            part_id = i["PartId"]
+                            unit_id = i["UnitId"]
+                            url_get_part_info = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {int(part_id)}"
+
+                            def Retry3(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=url_get_part_info, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            part = Retry3(s)
+                            part_json = part.json()
+                            partnumber = str(part_json[0]["PartNumber"])
+                            desc = str(part_json[0]["Description"])
+
+                            url_get_unit_info = f"https://{host}/sv/{company}/api/v1/Common/Units?$filter=Id eq {int(unit_id)}"
+
+                            def Retry4(s, max_tries=40):
+                                counter = 0
+                                while True:
+                                    reportResulst = s.get(url=url_get_unit_info, verify=False)
+                                    if reportResulst.status_code == 200:
+                                        return reportResulst
+
+                                    counter += 1
+                                    if counter == max_tries:
+                                        messagebox.showinfo("Error", f'Not able to fetch the part unit information on the parts included in the customer order')
+                                        break
+
+                                    if reportResulst.status_code != 200:
+                                        r = Retry1(s)
+                                    time.sleep(0.4)
+
+                            unit = Retry4(s)
+                            unit_json = unit.json()
+                            unit_code = str(unit_json[0]["Code"])
+                            restquantity = float(i["RestQuantity"])
+                            recieveQ = float(i["RestQuantity"])
+                            if not i["AlternatePreparationCode"]:
+                                for u in my_tree_ul.get_children():
+                                    my_tree_ul.delete(u)
+                                messagebox.showerror("Error", f"Issues with populating the treeview one or more rows on the customer order is missing the length")
+                                UL_entry_ordernumber.delete(0, END)
+                                UL_entry_ordernumber.focus_set()
+                                break
+                            else:
+                                try:
+                                    length = int(i["AlternatePreparationCode"])
+                                    partnumbers.append(str(partnumber))
+                                    length_list.append(str(length))
+                                    serial_numbers_w_length = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=PartId eq {int(part_id)} and ChargeNumber eq '{length}'"
+
+                                    def Retry200(s, max_tries=40):
+                                        counter = 0
+                                        while True:
+                                            reportResulst = s.get(url=serial_numbers_w_length, verify=False)
+                                            if reportResulst.status_code == 200:
+                                                return reportResulst
+
+                                            counter += 1
+                                            if counter == max_tries:
+                                                messagebox.showinfo("Error", f'Not able to fetch the serial numbers')
+                                                break
+
+                                            if reportResulst.status_code != 200:
+                                                r = Retry1(s)
+                                            time.sleep(0.4)
+
+                                    serials = Retry200(s)
+                                    serials_json = serials.json()
+                                    serial_numbers_with_right_length = []
+                                    serial_numbers_with_right_length_ids = []
+                                    for ior in serials_json:
+                                        serial_numbers_with_right_length_ids.append(ior["Id"])
+                                        serial_numbers_with_right_length.append(ior["SerialNumber"])
+                                    if not serial_numbers_with_right_length_ids:
+                                        recieveQ = 0
+                                        id = int(i["Id"])
+                                        if str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) == "":
+                                            my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                        elif str(combobox_UL.get()) != "" and str(combobox_UL_2.get()) == "":
+                                            if str(combobox_UL.get()) == str(partnumber):
+                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                            else:
+                                                pass
+                                        elif str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) != "":
+                                            if str(combobox_UL_2.get()) == str(length):
+                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                            else:
+                                                pass
+                                        elif str(combobox_UL_2.get()) != "" and str(combobox_UL.get()) != "":
+                                            if str(combobox_UL.get()) == str(partnumber) and str(combobox_UL_2.get()) == str(length):
+                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                            else:
+                                                pass
+
+                                    else:
+                                        quantity_of_serials = []
+                                        for j in serial_numbers_with_right_length_ids:
+
+                                            serial_numbers_Q = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocationProductRecords?$filter=ProductRecordId eq {int(j)}"
+
+                                            def Retry300(s, max_tries=40):
+                                                counter = 0
+                                                while True:
+                                                    reportResulst = s.get(url=serial_numbers_Q, verify=False)
+                                                    if reportResulst.status_code == 200:
+                                                        return reportResulst
+
+                                                    counter += 1
+                                                    if counter == max_tries:
+                                                        messagebox.showinfo("Error", f'Not able to fetch the stock balance on the serial numbers')
+                                                        break
+
+                                                    if reportResulst.status_code != 200:
+                                                        r = Retry1(s)
+                                                    time.sleep(0.4)
+
+                                            serials_Q = Retry300(s)
+                                            serials_Q_json = serials_Q.json()
+                                            quantity_of_serials.append(float(serials_Q_json[0]["Quantity"]))
+                                        sum_stock = float(sum(quantity_of_serials))
+                                        if recieveQ >= sum_stock:
+                                            recieveQ = sum_stock
+                                        id = int(i["Id"])
+                                        if str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) == "":
+                                            my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                        elif str(combobox_UL.get()) != "" and str(combobox_UL_2.get()) == "":
+                                            if str(combobox_UL.get()) == str(partnumber):
+                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                            else:
+                                                pass
+                                        elif str(combobox_UL.get()) == "" and str(combobox_UL_2.get()) != "":
+                                            if str(combobox_UL_2.get()) == str(length):
+                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                            else:
+                                                pass
+                                        elif str(combobox_UL_2.get()) != "" and str(combobox_UL.get()) != "":
+                                            if str(combobox_UL.get()) == str(partnumber) and str(combobox_UL_2.get()) == str(length):
+                                                my_tree_ul.insert('', 'end', values=(partnumber, desc, restquantity, recieveQ, unit_code, length, id, part_id))
+                                            else:
+                                                pass
+
+                                except Exception as e:
+                                    for u in my_tree_ul.get_children():
+                                        my_tree_ul.delete(u)
+                                    messagebox.showerror("Error", f"Issues with converting the length on at least one row")
+                                    UL_entry_ordernumber.delete(0, END)
+                                    UL_entry_ordernumber.focus_set()
+                    partnumbers.sort()
+                    partnumbers = list(set(partnumbers))
+                    length_list.sort()
+                    length_list = list(set(length_list))
+                    update_function_UL(partnumbers)
+                    update_function_UL_lenght(length_list)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Issues with populating the treeview {e}")
+
+
+    combobox_UL.grid(row=2, column=0, padx=(10, 0), pady=(40, 0), sticky=W, ipadx=10)
+    combobox_UL_2.grid(row=2, column=3, padx=(30, 0), pady=(40, 0), sticky=E, ipadx=10)
+
+    combobox_UL.bind("<<ComboboxSelected>>", populate_treeview_UL_with_combo)
+    combobox_UL_2.bind("<<ComboboxSelected>>", populate_treeview_UL_with_combo)
+    #HÄRHÄR
+    # Skal till TreeView för att hämta information från plocklista
+    tree_frame_plock1 = Frame(tab1)
+    tree_frame_plock1.grid(row=4, column=0, sticky=W, columnspan=4, ipady=70, pady=(0, 10), padx=(10, 0))
+    tree_scroll_plock1 = ttk.Scrollbar(tree_frame_plock1)
+    tree_scroll_plock1.pack(side=RIGHT, fill=Y)
+    my_tree = ttk.Treeview(tree_frame_plock1, style="Custom.Treeview", yscrollcommand=tree_scroll_plock1.set)
+    my_tree.tag_configure("Test", background="lightgrey", font=('Helvetica', 12, "italic"))
+    my_tree.tag_configure("Test1", background="white")
+    tree_scroll_plock1.config(command=my_tree.yview)
+    my_tree['columns'] = ("Artikelnummer", "Benämning", "Restantal", "Inlevereransantal", "Enhet", "Längd", "ID", "PARTID")
+    my_tree['displaycolumns'] = ("Artikelnummer", "Benämning", "Restantal", "Inlevereransantal", "Enhet", "Längd")
+    my_tree.column("#0", width=1, minwidth=1, stretch=0)
+    my_tree.column("Artikelnummer", anchor=W, width=140)
+    my_tree.column("Benämning", anchor=W, width=300)
+    my_tree.column("Restantal", anchor=W, width=90)
+    my_tree.column("Inlevereransantal", anchor=W, width=180)
+    my_tree.column("Enhet", anchor=W, width=90)
+    my_tree.column("Längd", anchor=W, width=90)
+    my_tree.column("ID", anchor=W, width=90)
+    my_tree.column("PARTID", anchor=W, width=90)
+
+    my_tree.heading("#0", text="", anchor=W)
+    my_tree.heading("Artikelnummer", text="Artikelnummer", anchor=W)
+    my_tree.heading("Benämning", text="Benämning", anchor=W)
+    my_tree.heading("Restantal", text="Restantal", anchor=W)
+    my_tree.heading("Inlevereransantal", text="Inlevereransantal", anchor=W)
+    my_tree.heading("Enhet", text="Enhet", anchor=W)
+    my_tree.heading("Längd", text="Längd", anchor=W)
+    my_tree.heading("ID", text="ID", anchor=W)
+    my_tree.heading("PARTID", text="ID", anchor=W)
+    my_tree.pack(fill='both', expand=True)
+
+    IL_label_recieve = ttk.Label(tab1, text="Inleveransantal: ", font=("Calibri", 14, "bold"))
+    IL_label_recieve.grid(row=5, column=0, padx=(10, 0), pady=(0, 0), sticky=W)
+    IL_entry_recieve = ttk.Entry(tab1, font=("Calibri", 14))
+    IL_entry_recieve.grid(row=6, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
+
+    IL_label_length = ttk.Label(tab1, text="Längd: ", font=("Calibri", 14, "bold"))
+    IL_label_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 0), sticky=W)
+    IL_entry_length = ttk.Entry(tab1, font=("Calibri", 14))
+    IL_entry_length.grid(row=6, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
+
+
+
+    IL_button_edit = ttk.Button(tab1, text="Uppdatera", style="my.TButton", command=update_record_IL)
+    IL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
+    IL_button_recieve = ttk.Button(tab1, text="Inleverera", style="my.TButton", command=report_recieve)
+    IL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 5), ipadx=30, sticky=W)
+
+
+
+    my_tree.bind('<ButtonRelease-1>', select_record_IL)
+
+    #canvas_lp_11 = Canvas(tab5, width=900, height=80, background='white')
+    #canvas_lp_11.grid(row=0, column=1, rowspan=3, columnspan=3, sticky=W, padx=10, pady=10)
+
+
+
+
+    # tab2: Design Utleverans
+
+    # Funktion för att populera treeview utleverans
+
+
 
     UL_label_rutin = ttk.Label(tab2, text="Utleverera lagerorder", font=("Calibri", 18, "bold"))
     UL_label_rutin.grid(row=0, column=0, padx=(10, 0), pady=(2, 20), sticky=W, columnspan=2)
@@ -1839,10 +1845,7 @@ else:
     UL_label_ordernumber = ttk.Label(tab2, text="Ordernummer: ", font=("Calibri", 14, "bold"))
     UL_label_ordernumber.grid(row=1, column=0, padx=(10, 0), pady=1, sticky=W)
 
-    # Entry till ordernummer
-    UL_entry_ordernumber = ttk.Entry(tab2, font=("Calibri", 14))
-    UL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 40), sticky=W)
-    UL_entry_ordernumber.bind("<Return>", populate_treeview_dispatch)
+
 
     # Skal till TreeView för att hämta information från plocklista
     tree_frame_UL = Frame(tab2)
