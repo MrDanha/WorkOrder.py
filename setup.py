@@ -26,7 +26,7 @@ base=base, icon="delivery.ico"
 )
 
 setup(name=product_name,
-version="1.0.15",
+version="1.0.16",
 description="WorkOrder_BETA_reportarrival",
 executables=[exe],
 options={"bdist_msi": bdist_msi_options,
