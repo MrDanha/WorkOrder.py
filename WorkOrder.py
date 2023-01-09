@@ -1268,6 +1268,7 @@ else:
                 my_tree_ul.delete(u)
             combobox_UL.set("")
             combobox_UL_2.set("")
+            # BAJSKORV
             ordernumber = str(UL_entry_ordernumber.get())
             urllib3.disable_warnings()
             s = requests.session()
@@ -1905,6 +1906,8 @@ else:
             #tab3.update()
             for u in my_tree_AL.get_children():
                 my_tree_AL.delete(u)
+            combobox_AL.set("")
+            combobox_AL_2.set("")
             ordernumber = str(AL_entry_ordernumber.get())
             urllib3.disable_warnings()
             s = requests.session()
@@ -1981,9 +1984,19 @@ else:
                     customer_get = RetryCustomer(s)
                     customer_get_json = customer_get.json()
                     if customer_get_json == []:
+                        tom_lista = []
+                        update_function_AL(tom_lista)
+                        update_function_AL_lenght(tom_lista)
+                        AL_entry_ordernumber.delete(0, END)
+                        AL_entry_ordernumber.focus_set()
+                        combobox_AL.set("")
+                        combobox_AL_2.set("")
                         AL_label_customer["text"] = ""
+                        AL_label_mark["text"] = "Antal markerade rader: "
                         messagebox.showerror("Error", f'Not able to fetch the customer information')
                     else:
+                        part_numbers = []
+                        lengths = []
                         kundnamn = customer_get_json[0]["Name"]
                         AL_label_customer["text"] = kundnamn
 
@@ -2055,9 +2068,16 @@ else:
 
                                         part_get = Retry10001(s)
                                         part_get_json = part_get.json()
+                                        part_numbers.append(str(part_get_json[0]["PartNumber"]))
+                                        lengths.append(str(pr_get_json[0]["ChargeNumber"]))
 
                                         my_tree_AL.insert('', 'end', values=(0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"]))
-
+                        part_numbers.sort()
+                        partnumbers = list(set(part_numbers))
+                        lengths.sort()
+                        length_list = list(set(lengths))
+                        update_function_AL(partnumbers)
+                        update_function_AL_lenght(length_list)
             #tab3.config(cursor="")
 
         except Exception as e:
@@ -3890,6 +3910,15 @@ else:
                 #                         else:
                 #                             pass
             #(cursor="")
+            tom_lista = []
+            update_function_AL(tom_lista)
+            update_function_AL_lenght(tom_lista)
+            AL_entry_ordernumber.delete(0, END)
+            AL_entry_ordernumber.focus_set()
+            combobox_AL.set("")
+            combobox_AL_2.set("")
+            AL_label_customer["text"] = ""
+            AL_label_mark["text"] = "Antal markerade rader: "
             messagebox.showinfo("Info", "Återlämningen gick ok!")
             for u in my_tree_ul.get_children():
                 my_tree_ul.delete(u)
@@ -3900,6 +3929,12 @@ else:
             # Uppdatera extra fälten på serienummer härnäst
         except Exception as e:
             #tab3.config(cursor="")
+            # tom_lista = []
+            # update_function_AL(tom_lista)
+            # update_function_AL_lenght(tom_lista)
+            # AL_entry_ordernumber.delete(0, END)
+            # AL_entry_ordernumber.focus_set()
+            # AL_label_customer["text"] = ""
             messagebox.showinfo("Info", e)
 
 
@@ -3915,6 +3950,270 @@ else:
     AL_entry_ordernumber.grid(row=2, column=0, padx=(10, 0), pady=(0, 40), sticky=W)
     AL_entry_ordernumber.bind("<Return>", populate_treeview_AL)
 
+    options_AL_ComboBox = ['']
+    selected_AL_ComboBox = StringVar(tab1)
+    selected_AL_ComboBox.set("")
+    combobox_AL = ttk.Combobox(tab3, values=options_AL_ComboBox, state="normal", textvariable=selected_AL_ComboBox)
+
+    options_AL_ComboBox_2 = ['']
+    selected_AL_ComboBox_2 = StringVar(tab3)
+    selected_AL_ComboBox_2.set("")
+    combobox_AL_2 = ttk.Combobox(tab3, values=options_AL_ComboBox_2, state="normal", textvariable=selected_AL_ComboBox_2)
+
+
+    def backend_get_new_values_ComboBox_AL(listar):
+        listar = listar
+        # Gör saker som uppdaterar ComboBox
+        return listar
+
+
+    def get_new_values_ComboBox_AL(recieve_list_1):
+        recieve_list_1.append("")
+        recieve_list_1.sort()
+        listar = backend_get_new_values_ComboBox_AL(recieve_list_1)
+        combobox_AL["values"] = listar
+        # combobox_IL_2["values"] = listar
+
+
+    def update_function_AL(recieve_list):
+        combobox_IL.config(postcommand=get_new_values_ComboBox_AL(recieve_list))
+        # combobox_IL_2.config(postcommand=get_new_values_ComboBox_IL(recieve_list))
+
+
+    def backend_get_new_values_ComboBox_AL_lenght(listar):
+        listar = listar
+        # Gör saker som uppdaterar ComboBox
+        return listar
+
+
+    def get_new_values_ComboBox_AL_lenght(recieve_list_1):
+        recieve_list_1.append("")
+        recieve_list_1.sort()
+        listar = backend_get_new_values_ComboBox_AL(recieve_list_1)
+        # combobox_IL["values"] = listar
+        combobox_AL_2["values"] = listar
+
+
+    def update_function_AL_lenght(recieve_list):
+        # combobox_IL.config(postcommand=get_new_values_ComboBox_IL(recieve_list))
+        combobox_AL_2.config(postcommand=get_new_values_ComboBox_AL_lenght(recieve_list))
+
+
+    def populate_treeview_AL_with_combo(events):
+        try:
+            # tab3.config(cursor="watch")
+            # tab3.update()
+            for u in my_tree_AL.get_children():
+                my_tree_AL.delete(u)
+            ordernumber = str(AL_entry_ordernumber.get())
+            urllib3.disable_warnings()
+            s = requests.session()
+            url = f"https://{host}/sv/{company}/login"
+            inloggning = \
+                {
+                    "Username": f"{username}",
+                    "Password": f"{password}",
+                    "ForceRelogin": True
+                }
+
+            def Retry1(s, max_tries=40):
+                counter = 0
+                while True:
+                    # s = requests.session()
+                    r = s.post(url=url, json=inloggning, verify=False)
+                    if r.status_code == 200:
+                        return r
+                    counter += 1
+                    if counter == max_tries:
+                        messagebox.showerror("Error", f'Not able to login to the API')
+                        break
+                    time.sleep(0.4)
+
+            r = Retry1(s)
+            r_fel = r.json()
+            if r_fel == None or r_fel == "None":
+                messagebox.showerror("Error", f'Not able to login to the API')
+            else:
+
+                wh_url = f"https://{host}/sv/{company}/api/v1/Common/Warehouses?$filter=Code eq '{lagerstalle}'"
+
+                def Retry2(s, max_tries=40):
+                    counter = 0
+                    while True:
+                        reportResulst = s.get(url=wh_url, verify=False)
+                        if reportResulst.status_code == 200:
+                            return reportResulst
+
+                        counter += 1
+                        if counter == max_tries:
+                            messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                            break
+
+                        if reportResulst.status_code != 200:
+                            r = Retry1(s)
+                        time.sleep(0.4)
+
+                wh_get = Retry2(s)
+                wh_get_json = wh_get.json()
+                if wh_get_json == []:
+                    messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                else:
+                    wh_id = int(wh_get_json[0]["Id"])
+                    customer_url = f"https://{host}/sv/{company}/api/v1/Sales/Customers?$filter=Code eq '{ordernumber}'"
+
+                    def RetryCustomer(s, max_tries=40):
+                        counter = 0
+                        while True:
+                            reportResulst = s.get(url=customer_url, verify=False)
+                            if reportResulst.status_code == 200:
+                                return reportResulst
+
+                            counter += 1
+                            if counter == max_tries:
+                                messagebox.showerror("Error", f'Not able to fetch the warehouse')
+                                break
+
+                            if reportResulst.status_code != 200:
+                                r = Retry1(s)
+                            time.sleep(0.4)
+
+                    customer_get = RetryCustomer(s)
+                    customer_get_json = customer_get.json()
+                    if customer_get_json == []:
+                        tom_lista = []
+                        update_function_AL(tom_lista)
+                        update_function_AL_lenght(tom_lista)
+                        AL_entry_ordernumber.delete(0, END)
+                        AL_entry_ordernumber.focus_set()
+                        AL_label_customer["text"] = ""
+                        AL_label_mark["text"] = "Antal markerade rader: "
+                        messagebox.showerror("Error", f'Not able to fetch the customer information')
+                    else:
+                        part_numbers = []
+                        lengths = []
+                        kundnamn = customer_get_json[0]["Name"]
+                        AL_label_customer["text"] = kundnamn
+
+                        pl_url = f"https://{host}/sv/{company}/api/v1/Inventory/PartLocations?$filter=WarehouseId eq {wh_id} and Name eq '{ordernumber}' and LifeCycleState eq 10 and Balance gt 0&$expand=PartLocationProductRecords"
+
+                        def Retry900(s, max_tries=40):
+                            counter = 0
+                            while True:
+                                reportResulst = s.get(url=pl_url, verify=False)
+                                if reportResulst.status_code == 200:
+                                    return reportResulst
+
+                                counter += 1
+                                if counter == max_tries:
+                                    messagebox.showerror("Error", f'Not able to fetch the part information on the parts included in the customer order')
+                                    break
+
+                                if reportResulst.status_code != 200:
+                                    r = Retry1(s)
+                                time.sleep(0.4)
+
+                        pl_get = Retry900(s)
+                        if pl_get == []:
+                            messagebox.showerror("Error", f'Did not find any rows for the specific project')
+                        else:
+                            pl_get_json = pl_get.json()
+                            for pr_bals in pl_get_json:
+                                for iora in pr_bals["PartLocationProductRecords"]:
+                                    if iora["Quantity"] > 0:
+                                        # print(iora)
+                                        pr_url = f"https://{host}/sv/{company}/api/v1/Inventory/ProductRecords?$filter=Id eq {iora['ProductRecordId']}"
+
+                                        def Retry10000(s, max_tries=40):
+                                            counter = 0
+                                            while True:
+                                                reportResulst = s.get(url=pr_url, verify=False)
+                                                if reportResulst.status_code == 200:
+                                                    return reportResulst
+
+                                                counter += 1
+                                                if counter == max_tries:
+                                                    messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                                    break
+
+                                                if reportResulst.status_code != 200:
+                                                    r = Retry1(s)
+                                                time.sleep(0.4)
+
+                                        pr_get = Retry10000(s)
+                                        pr_get_json = pr_get.json()
+                                        part_id = int(pr_get_json[0]["PartId"])
+                                        part_url = f"https://{host}/sv/{company}/api/v1/Inventory/Parts?$filter=Id eq {part_id}"
+
+                                        def Retry10001(s, max_tries=40):
+                                            counter = 0
+                                            while True:
+                                                reportResulst = s.get(url=part_url, verify=False)
+                                                if reportResulst.status_code == 200:
+                                                    return reportResulst
+
+                                                counter += 1
+                                                if counter == max_tries:
+                                                    messagebox.showerror("Error", f'Not able to fetch information regarding the productrecord')
+                                                    break
+
+                                                if reportResulst.status_code != 200:
+                                                    r = Retry1(s)
+                                                time.sleep(0.4)
+
+                                        part_get = Retry10001(s)
+                                        part_get_json = part_get.json()
+                                        part_numbers.append(str(part_get_json[0]["PartNumber"]))
+                                        partnumber = str(part_get_json[0]["PartNumber"])
+                                        length = str(pr_get_json[0]["ChargeNumber"])
+                                        lengths.append(str(pr_get_json[0]["ChargeNumber"]))
+                                        if str(combobox_AL.get()) == "" and str(combobox_AL_2.get()) == "":
+                                            my_tree_AL.insert('', 'end', values=(
+                                                0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id, iora['ProductRecordId'],
+                                                iora["Quantity"], iora["PartLocationId"]))
+                                        elif str(combobox_AL.get()) != "" and str(combobox_AL_2.get()) == "":
+                                            if str(combobox_AL.get()) == str(partnumber):
+                                                my_tree_AL.insert('', 'end', values=(
+                                                    0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id,
+                                                    iora['ProductRecordId'],
+                                                    iora["Quantity"], iora["PartLocationId"]))
+                                            else:
+                                                pass
+                                        elif str(combobox_AL.get()) == "" and str(combobox_AL_2.get()) != "":
+                                            if str(combobox_AL_2.get()) == str(length):
+                                                my_tree_AL.insert('', 'end', values=(
+                                                    0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id,
+                                                    iora['ProductRecordId'],
+                                                    iora["Quantity"], iora["PartLocationId"]))
+                                            else:
+                                                pass
+                                        elif str(combobox_AL_2.get()) != "" and str(combobox_AL.get()) != "":
+                                            if str(combobox_AL.get()) == str(partnumber) and str(combobox_AL_2.get()) == str(length):
+                                                my_tree_AL.insert('', 'end', values=(
+                                                    0, pr_get_json[0]["SerialNumber"], part_get_json[0]["PartNumber"], part_get_json[0]["Description"], pr_get_json[0]["ChargeNumber"], pr_get_json[0]["ChargeNumber"], 1, part_id,
+                                                    iora['ProductRecordId'],
+                                                    iora["Quantity"], iora["PartLocationId"]))
+                                            else:
+                                                pass
+
+                        part_numbers.sort()
+                        partnumbers = list(set(part_numbers))
+                        lengths.sort()
+                        length_list = list(set(lengths))
+                        update_function_AL(partnumbers)
+                        update_function_AL_lenght(length_list)
+            # tab3.config(cursor="")
+
+        except Exception as e:
+            # (cursor="")
+            messagebox.showerror("Error", f"Issues with populating the treeview {e}")
+
+
+    combobox_AL.grid(row=2, column=0, padx=(10, 0), pady=1, sticky=SW, ipadx=10)
+    combobox_AL_2.grid(row=2, column=3, padx=(30, 0), pady=1, sticky=SE, ipadx=10)
+
+    combobox_AL.bind("<<ComboboxSelected>>", populate_treeview_AL_with_combo)
+    combobox_AL_2.bind("<<ComboboxSelected>>", populate_treeview_AL_with_combo)
+
     def AL_mark_as_return():
         selected_items = my_tree_AL.selection()
         for itemss in selected_items:
@@ -3924,13 +4223,13 @@ else:
 
 
     AL_buttom_mark = ttk.Button(tab3, text="Markera som återlämnade", command=AL_mark_as_return)
-    AL_buttom_mark.grid(row=2, column=1, padx=(10, 0), pady=(0, 40), sticky=W, ipadx=30)
+    AL_buttom_mark.grid(row=4, column=1, padx=(10, 0), pady=(0, 5), sticky=W, ipadx=30)
 
     AL_label_mark = ttk.Label(tab3, text="Antal markerade rader: ", font=('Helvetica', 12, "bold"))
-    AL_label_mark.grid(row=2, column=2, padx=(10, 0), pady=(0, 40), sticky=W, ipadx=30)
+    AL_label_mark.grid(row=4, column=2, padx=(10, 0), pady=(0, 5), sticky=W, ipadx=30)
 
     AL_label_customer = ttk.Label(tab3, text="", font=('Helvetica', 12, "bold"))
-    AL_label_customer.grid(row=1, column=1, padx=(10, 0), pady=(0, 5), sticky=W, ipadx=30)
+    AL_label_customer.grid(row=1, column=1, rowspan=2, padx=(5, 0), pady=(0, 5), sticky=W, ipadx=30)
 
     # Skal till TreeView för att hämta information från plocklista
     #part_id, iora['ProductRecordId'], iora["Quantity"], iora["PartLocationId"])
@@ -3972,17 +4271,17 @@ else:
     my_tree_AL.pack(fill='both', expand=True)
 
     AL_label_recieve = ttk.Label(tab3, text="Återlämnad längd: ", font=("Calibri", 14, "bold"))
-    AL_label_recieve.grid(row=4, column=0, padx=(10, 0), pady=(0, 2), sticky=W)
+    AL_label_recieve.grid(row=5, column=0, padx=(10, 0), pady=(0, 2), sticky=W)
     AL_entry_recieve = ttk.Entry(tab3, font=("Calibri", 14))
-    AL_entry_recieve.grid(row=5, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
+    AL_entry_recieve.grid(row=6, column=0, padx=(10, 0), pady=(0, 50), sticky=W)
 
     var = IntVar(value=0)
     var2 = IntVar(value=0)
     c1 = ttk.Checkbutton(tab3, text='Återlämna', onvalue=1, offvalue=0, variable=var)
-    c1.grid(row=4, column=1, padx=(10, 0), pady=(0, 2), sticky=S+W)
+    c1.grid(row=5, column=1, padx=(10, 0), pady=(0, 2), sticky=S+W)
     #c1.bind('<ButtonRelease-1>', get_state)
     c2 = ttk.Checkbutton(tab3, text='Rengör', onvalue=1, offvalue=0, variable=var2)
-    c2.grid(row=5, column=1, padx=(10, 0), pady=(0, 2), sticky=N+W)
+    c2.grid(row=6, column=1, padx=(10, 0), pady=(0, 2), sticky=N+W)
 
     # UL_label_length = ttk.Label(tab2, text="Längd: ", font=("Calibri", 14, "bold"))
     # UL_label_length.grid(row=4, column=1, padx=(2, 0), pady=(0, 2), sticky=W)
@@ -3990,9 +4289,9 @@ else:
     # UL_entry_length.grid(row=5, column=1, padx=(2, 0), pady=(0, 50), sticky=W)
 
     AL_button_edit = ttk.Button(tab3, text="Uppdatera", style="my.TButton", command=update_record_AL)
-    AL_button_edit.grid(row=5, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
+    AL_button_edit.grid(row=6, column=2, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
     AL_button_recieve = ttk.Button(tab3, text="Återlämna", style="my.TButton", command=create_invoice)
-    AL_button_recieve.grid(row=5, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
+    AL_button_recieve.grid(row=6, column=3, padx=(2, 0), pady=(0, 50), ipadx=30, sticky=W)
 
     my_tree_AL.bind('<ButtonRelease-1>', select_record_AL)
 
